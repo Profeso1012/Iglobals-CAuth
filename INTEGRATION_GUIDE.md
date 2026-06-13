@@ -1,50 +1,103 @@
 # iGlobals Central Auth (ICA) - Integration Guide
 
-Welcome to the **iGlobals Central Auth** integration guide. This document explains how the authentication service works, how to run it locally, and how to integrate it into any new or existing iGlobals application.
+Welcome to the **iGlobals Central Auth** integration guide. This document explains how the authentication service works, how to deploy it, and how to integrate it into any new or existing application.
 
 ## Table of Contents
 1. [Architecture Overview](#architecture-overview)
-2. [Running the Application Locally](#running-the-application-locally)
+2. [Deployment](#deployment)
 3. [Registering a Client Application](#registering-a-client-application)
 4. [Integrating via JavaScript/TypeScript SDK](#integrating-via-javascripttypescript-sdk)
 5. [Integrating via Python SDK](#integrating-via-python-sdk)
-6. [Postman & Manual Testing](#postman--manual-testing)
+6. [Testing](#testing)
 
 ---
 
 ## Architecture Overview
 
-The ICA system provides Single Sign-On (SSO) across all iGlobals apps. It is based on **OAuth 2.0 + PKCE** and **OpenID Connect (OIDC)**.
+ICA provides **Single Sign-On (SSO)** using **OAuth 2.0 + PKCE** and **OpenID Connect (OIDC)**.
 
-The system is composed of:
-1. **The Core Database**: A PostgreSQL database (e.g., Neon) that holds users, clients, authorization codes, refresh tokens, and consent histories.
-2. **The Backend API (Express.js)**: Runs on port `3001` (or under `/api` in production). Handles the heavy lifting (OAuth exchanges, password hashing, JWT signing).
-3. **The Frontend UI (Next.js)**: Runs on port `3000`. This provides the beautiful login, registration, and user dashboard pages. It proxies `/api/*` requests to the Express backend.
-4. **The SDKs**: `@iglobals/auth-client` (JS) and `iglobals-auth` (Python).
+The system is a **single Next.js application** deployed at one URL:
+
+- **Frontend UI**: Login, registration, consent, and dashboard pages
+- **Backend API**: OAuth 2.0 endpoints at `/api/oauth/*` and user management at `/api/auth/*`
+- **Database**: PostgreSQL (Neon recommended) for users, sessions, OAuth clients, and tokens
+- **SDKs**: `@iglobals/auth-client` (JavaScript/TypeScript) and `iglobals-auth` (Python)
+
+**Key Benefit**: Your applications only need one URL to connect to - everything is served from the same deployment.
+
+```
+┌────────────────────────────────────────┐
+│  Your App                              │
+│  SDK configured with:                  │
+│  baseUrl: 'https://auth.yourdomain.com'│
+└─────────────┬──────────────────────────┘
+              │
+              ▼
+┌────────────────────────────────────────┐
+│  Next.js (auth.yourdomain.com)         │
+│  ├── Frontend: /auth/login             │
+│  ├── API: /api/oauth/token             │
+│  ├── API: /api/oauth/authorize         │
+│  └── Database: PostgreSQL              │
+└────────────────────────────────────────┘
+```
 
 ---
 
-## Running the Application Locally
+## Deployment
 
-1. **Install Dependencies**: From the root of the project, run:
+### Deploy to Vercel (Recommended)
+
+1. **Set up database**:
    ```bash
+   # Run migrations on your PostgreSQL database
+   psql $DATABASE_URL -f migrations/001_extensions.sql
+   psql $DATABASE_URL -f migrations/002_schema.sql
+   psql $DATABASE_URL -f migrations/003_users.sql
+   # ... run all migration files
+   ```
+
+2. **Generate JWT keys**:
+   ```bash
+   node scripts/generate-keys.js
+   ```
+
+3. **Configure environment variables in Vercel**:
+   ```bash
+   DATABASE_URL=postgresql://...
+   JWT_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\n..."
+   JWT_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----\n..."
+   JWT_KID=unique-key-id
+   SESSION_SECRET=random-64-char-secret
+   NEXT_PUBLIC_BASE_URL=https://auth.yourdomain.com
+   ICA_BASE_URL=https://auth.yourdomain.com
+   # ... add SMTP, admin credentials, etc.
+   ```
+
+4. **Deploy**:
+   ```bash
+   cd web
+   vercel deploy --prod
+   ```
+
+Your auth server is now live at **one URL**: `https://auth.yourdomain.com`
+
+### Local Development
+
+1. **Install dependencies**:
+   ```bash
+   cd web
    npm install
    ```
-2. **Setup `.env`**: Make sure your `.env` contains valid keys. Specifically:
-   - `DATABASE_URL`: Must point to your Neon PostgreSQL instance (which has been migrated).
-   - `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY`: Generated via `node scripts/generate-keys.js`.
-3. **Start the API Server**:
-   ```bash
-   npm run dev:api
-   ```
-   *This starts the Express server on `http://localhost:3001`.*
-4. **Start the Frontend Web App**:
-   ```bash
-   npm run dev:web
-   ```
-   *This starts Next.js on `http://localhost:3000`.*
 
-You can now visit `http://localhost:3000/login` to see the login page!
+2. **Create `.env.local`** with your environment variables
+
+3. **Run development server**:
+   ```bash
+   npm run dev
+   ```
+
+Access at `http://localhost:3000`
 
 ---
 
@@ -69,8 +122,6 @@ For production, you would use the internal **Admin API** to register clients (e.
 
 ## Integrating via JavaScript/TypeScript SDK
 
-If you are building a Node.js or Express app, use the `@iglobals/auth-client` SDK.
-
 ### 1. Install the SDK
 ```bash
 npm install @iglobals/auth-client
@@ -78,65 +129,102 @@ npm install @iglobals/auth-client
 
 ### 2. Initialize the Client
 ```typescript
-import { createIGlobalsAuth } from '@iglobals/auth-client';
+import { ICAClient } from '@iglobals/auth-client';
 
-const ica = createIGlobalsAuth({
-  clientId: 'my-awesome-app',
-  clientSecret: 'my-raw-secret-string',
-  redirectUri: 'http://localhost:3000/auth/callback', // Must match EXACTLY what's in the DB
+const client = new ICAClient({
+  baseUrl: 'https://auth.yourdomain.com',     // Your deployed ICA URL
+  clientId: 'my-awesome-app',                 // From admin portal
+  clientSecret: 'your-client-secret',         // From admin portal
+  redirectUri: 'https://yourapp.com/callback', // Your callback URL
   scopes: ['openid', 'profile', 'email'],
-  baseUrl: 'http://localhost:3000', // URL of the central auth service
 });
 ```
 
 ### 3. Generate Auth URL & Redirect User
-When a user clicks "Login", generate an authorization URL and redirect them:
+When a user clicks "Login":
 ```typescript
-// Generate PKCE code verifier and challenge
-const { codeVerifier, codeChallenge } = ica.generatePKCE();
+// Generate PKCE
+const { codeVerifier, codeChallenge } = client.generatePKCE();
+const state = crypto.randomUUID();
 
-// Save the verifier in the user's session cookie or local storage temporarily!
+// Store verifier in session (server-side!)
 req.session.codeVerifier = codeVerifier;
+req.session.state = state;
 
-// Get the redirect URL
-const url = ica.getAuthorizationUrl('random_state_string', codeChallenge);
+// Get authorization URL
+const authUrl = client.getAuthorizationUrl(state, codeChallenge);
 
-// Redirect the user
-res.redirect(url);
+// Redirect user
+res.redirect(authUrl);
 ```
 
 ### 4. Handle the Callback & Exchange Code
-The user will be redirected back to your `redirectUri` with a `?code=` parameter.
+User returns to your `redirectUri` with a code:
 ```typescript
-app.get('/auth/callback', async (req, res) => {
-  const code = req.query.code as string;
-  const verifier = req.session.codeVerifier;
-
-  // Exchange the code for tokens!
-  const tokens = await ica.exchangeCode(code, verifier);
+app.get('/callback', async (req, res) => {
+  const { code, state } = req.query;
   
-  // Store the access token and refresh token securely in your app's session
+  // Verify state (CSRF protection)
+  if (state !== req.session.state) {
+    return res.status(400).send('Invalid state');
+  }
+  
+  // Exchange code for tokens
+  const tokens = await client.exchangeCode(
+    code as string,
+    req.session.codeVerifier
+  );
+  
+  // Store tokens securely
   req.session.accessToken = tokens.access_token;
   req.session.refreshToken = tokens.refresh_token;
-
+  
+  // Get user info
+  const userInfo = await client.getUserInfo(tokens.access_token);
+  req.session.user = userInfo;
+  
   res.redirect('/dashboard');
 });
 ```
 
-### 5. Protect Your Own Routes (Middleware)
-You can easily protect your own app's endpoints using the included middleware:
+### 5. Protect Routes with Middleware
 ```typescript
-app.get('/api/protected-data', ica.requireAuth(), (req, res) => {
-  // req.icaUser contains the verified JWT payload!
-  res.json({ message: `Hello ${req.icaUser.email}!` });
+import { ICAMiddleware } from '@iglobals/auth-client';
+
+// Apply middleware to protect routes
+app.use(ICAMiddleware({
+  baseUrl: 'https://auth.yourdomain.com',
+  clientId: 'my-awesome-app'
+}));
+
+app.get('/api/protected', (req, res) => {
+  // req.user contains verified JWT claims
+  res.json({ 
+    message: `Hello ${req.user.email}!`,
+    user: req.user 
+  });
 });
+```
+
+### 6. Refresh Tokens
+```typescript
+// When access token expires
+try {
+  const userInfo = await client.getUserInfo(accessToken);
+} catch (error) {
+  if (error.message.includes('expired')) {
+    // Refresh the token
+    const newTokens = await client.refreshAccessToken(refreshToken);
+    // Update stored tokens
+    req.session.accessToken = newTokens.access_token;
+    req.session.refreshToken = newTokens.refresh_token;
+  }
+}
 ```
 
 ---
 
 ## Integrating via Python SDK
-
-If you are building a FastAPI or Flask app, use the `iglobals-auth` Python SDK.
 
 ### 1. Install the SDK
 ```bash
@@ -147,54 +235,249 @@ pip install iglobals-auth
 ```python
 from iglobals_auth import IGlobalsAuth
 
-ica = IGlobalsAuth(
-    client_id='my-awesome-app',
-    client_secret='my-raw-secret-string',
-    redirect_uri='http://localhost:8000/auth/callback',
-    base_url='http://localhost:3000',
+client = IGlobalsAuth(
+    base_url='https://auth.yourdomain.com',     # Your deployed ICA URL
+    client_id='my-awesome-app',                 # From admin portal
+    client_secret='your-client-secret',         # From admin portal
+    redirect_uri='https://yourapp.com/callback', # Your callback URL
+    scopes=['openid', 'profile', 'email']
 )
 ```
 
-### 3. Generate Auth URL & Redirect User
+### 3. Generate Auth URL & Redirect User (Flask)
 ```python
-from iglobals_auth import generate_pkce
+from flask import Flask, redirect, session
+import uuid
 
-pkce = generate_pkce()
-# Save pkce['code_verifier'] to the user's session securely!
+app = Flask(__name__)
+app.secret_key = 'your-secret-key'
 
-url = ica.get_authorization_url(state='xyz123', code_challenge=pkce['code_challenge'])
-# Redirect the user to `url`
+@app.route('/login')
+def login():
+    # Generate PKCE
+    pkce = client.generate_pkce()
+    state = str(uuid.uuid4())
+    
+    # Store in session
+    session['pkce_verifier'] = pkce['code_verifier']
+    session['state'] = state
+    
+    # Redirect to ICA
+    auth_url = client.get_authorization_url(state, pkce['code_challenge'])
+    return redirect(auth_url)
 ```
 
 ### 4. Handle the Callback & Exchange Code
 ```python
-tokens = ica.exchange_code(code='the_code_from_url', code_verifier='saved_verifier_from_session')
-# tokens.access_token contains your JWT!
+@app.route('/callback')
+def callback():
+    code = request.args.get('code')
+    state = request.args.get('state')
+    
+    # Verify state
+    if state != session.get('state'):
+        return 'Invalid state', 400
+    
+    # Exchange code for tokens
+    tokens = client.exchange_code(code, session['pkce_verifier'])
+    
+    # Store tokens
+    session['access_token'] = tokens.access_token
+    session['refresh_token'] = tokens.refresh_token
+    
+    # Get user info
+    user_info = client.get_user_info(tokens.access_token)
+    session['user'] = {
+        'id': user_info.sub,
+        'email': user_info.email,
+        'name': f"{user_info.given_name} {user_info.family_name}"
+    }
+    
+    return redirect('/dashboard')
 ```
 
-### 5. FastAPI Dependency
-To protect a FastAPI endpoint:
+### 5. FastAPI Integration
 ```python
 from fastapi import FastAPI, Depends
-from iglobals_auth import require_auth
+from iglobals_auth.fastapi import ICAMiddleware
 
 app = FastAPI()
 
-@app.get("/protected")
-async def protected_route(user: dict = Depends(require_auth(ica))):
-    return {"message": f"Welcome, {user['email']}!"}
+# Create middleware
+auth = ICAMiddleware(
+    base_url='https://auth.yourdomain.com',
+    client_id='my-awesome-app'
+)
+
+@app.get('/api/protected')
+async def protected_route(user: dict = Depends(auth)):
+    # user contains verified JWT claims
+    return {
+        'message': f"Hello {user['email']}!",
+        'user': user
+    }
+```
+
+### 6. Refresh Tokens
+```python
+try:
+    user_info = client.get_user_info(access_token)
+except Exception as e:
+    if 'expired' in str(e).lower():
+        # Refresh the token
+        new_tokens = client.refresh_access_token(refresh_token)
+        # Update stored tokens
+        session['access_token'] = new_tokens.access_token
+        session['refresh_token'] = new_tokens.refresh_token
 ```
 
 ---
 
-## Postman & Manual Testing
+## Testing
 
-To quickly see the frontend and perform an end-to-end test manually without a third-party app:
-1. Ensure both the API (`npm run dev:api`) and Next.js (`npm run dev:web`) are running.
-2. Open your browser and navigate to `http://localhost:3000`.
-3. You will be redirected to `http://localhost:3000/login`.
-4. Click on **Become an I-con** to register a new account.
-5. Fill out the registration form.
-6. Once registered successfully, you will be redirected to the internal Central Auth Dashboard (`/dashboard`).
+## Testing
 
-Because of the SSO implementation, as long as you are logged into the central dashboard, any app that redirects you to Central Auth will automatically approve you (or ask for simple one-click Consent) without requiring you to type your password again!
+### Manual End-to-End Test
+
+1. **Start your deployment** (local: `npm run dev` in `web/` directory)
+2. **Open browser**: Navigate to `http://localhost:3000` (or your deployed URL)
+3. **Register**: Click "Become an I-con" and create an account
+4. **Login**: Use your credentials to log in
+5. **Dashboard**: You'll be redirected to `/dashboard` showing your profile
+
+### Test OAuth Flow with Your App
+
+1. **Create a test OAuth client** in the admin portal
+2. **Configure your app** with the SDK pointing to your ICA URL
+3. **Click login** in your app
+4. **Verify redirect** to ICA login page
+5. **Grant consent** if prompted
+6. **Verify callback** returns to your app with user data
+
+### Using Postman
+
+**1. Get Authorization Code:**
+```
+GET https://auth.yourdomain.com/api/oauth/authorize
+  ?client_id=your-client-id
+  &redirect_uri=http://localhost/callback
+  &response_type=code
+  &scope=openid profile email
+  &state=random-state
+  &code_challenge=BASE64URL_SHA256_HASH
+  &code_challenge_method=S256
+```
+
+**2. Exchange Code for Tokens:**
+```
+POST https://auth.yourdomain.com/api/oauth/token
+Content-Type: application/json
+
+{
+  "grant_type": "authorization_code",
+  "code": "auth-code-from-step-1",
+  "client_id": "your-client-id",
+  "client_secret": "your-client-secret",
+  "redirect_uri": "http://localhost/callback",
+  "code_verifier": "original-code-verifier"
+}
+```
+
+**3. Get User Info:**
+```
+GET https://auth.yourdomain.com/api/oauth/userinfo
+Authorization: Bearer YOUR_ACCESS_TOKEN
+```
+
+**4. Refresh Token:**
+```
+POST https://auth.yourdomain.com/api/oauth/token
+Content-Type: application/json
+
+{
+  "grant_type": "refresh_token",
+  "refresh_token": "your-refresh-token",
+  "client_id": "your-client-id",
+  "client_secret": "your-client-secret"
+}
+```
+
+---
+
+## Key Concepts
+
+### PKCE (Proof Key for Code Exchange)
+- Protects against authorization code interception
+- Generate `code_verifier` (random string)
+- Create `code_challenge` = BASE64URL(SHA256(code_verifier))
+- Send challenge in authorize request
+- Send verifier in token request
+
+### State Parameter
+- Random string for CSRF protection
+- Store in session before redirect
+- Verify matches on callback
+
+### Scopes
+- `openid`: Required for OIDC, provides `sub` claim
+- `profile`: Provides name fields
+- `email`: Provides email and verification status
+- `phone`: Provides phone number
+- `address`: Provides address information
+
+### Token Types
+- **Access Token**: Short-lived (15 min), used for API requests
+- **Refresh Token**: Long-lived (30 days), used to get new access tokens
+- **ID Token**: Contains user identity claims (OIDC)
+
+---
+
+## Security Checklist
+
+- ✅ Use HTTPS in production
+- ✅ Store client secrets server-side only
+- ✅ Validate state parameter (CSRF protection)
+- ✅ Implement PKCE for public clients
+- ✅ Store tokens in httpOnly cookies or secure server sessions
+- ✅ Never expose tokens in URLs or client-side JavaScript
+- ✅ Validate JWT signatures before trusting claims
+- ✅ Handle token expiration and refresh gracefully
+- ✅ Revoke tokens on logout
+- ✅ Use exact redirect URI matching
+
+---
+
+## Troubleshooting
+
+### "Invalid client credentials"
+- Verify `client_id` and `client_secret` match admin portal
+- Check client is active in database
+
+### "Redirect URI mismatch"
+- Ensure `redirect_uri` exactly matches registered URI
+- Check for trailing slashes, http vs https
+
+### "PKCE challenge failed"
+- Verify you're sending the correct `code_verifier`
+- Ensure it matches the `code_challenge` sent in authorize request
+
+### "Invalid or expired code"
+- Authorization codes expire in 10 minutes
+- Codes can only be used once
+- Don't reuse codes
+
+### "Token expired"
+- Access tokens expire in 15 minutes
+- Use refresh token to get new access token
+- Implement automatic token refresh in your app
+
+---
+
+## Support & Resources
+
+- **Main README**: [README.md](./README.md)
+- **JavaScript SDK Docs**: [sdk-js/README.md](./sdk-js/README.md)
+- **Python SDK Docs**: [sdk-py/README.md](./sdk-py/README.md)
+- **Full System Design**: [full-system-design.md](./full-system-design.md)
+
+For issues and questions, open an issue on GitHub.

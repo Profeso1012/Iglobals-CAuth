@@ -3,17 +3,19 @@
   "version": "1.0.0",
   "private": true,
   "workspaces": [
-    "api",
     "web",
-    "sdk-js"
+    "sdk-js",
+    "sdk-py"
   ],
   "scripts": {
-    "dev:api": "npm run dev --workspace=api",
-    "dev:web": "npm run dev --workspace=web",
-    "build:api": "npm run build --workspace=api",
-    "build:web": "npm run build --workspace=web",
-    "build:sdk": "npm run build --workspace=sdk-js",
-    "test": "npm test --workspaces"
+    "dev": "npm run dev --workspace=web",
+    "build": "npm run build --workspace=web",
+    "start": "npm run start --workspace=web",
+    "build:sdk-js": "npm run build --workspace=sdk-js",
+    "build:sdk-py": "cd sdk-py && python -m build",
+    "build:sdks": "npm run build:sdk-js && npm run build:sdk-py",
+    "generate-keys": "node scripts/generate-keys.js",
+    "migrate": "node scripts/run-migrations.js"
   },
   "devDependencies": {
     "dotenv": "^16.4.5",
