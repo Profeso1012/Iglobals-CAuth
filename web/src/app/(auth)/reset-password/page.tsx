@@ -3,7 +3,7 @@
 import { useState, FormEvent } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Lock, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
-import Link from 'next/link';
+import { Footer, IGlobalsLogo, InputField } from '@/components/GoogleAuthUI';
 
 export default function ResetPasswordPage() {
   const params = useSearchParams();
@@ -43,52 +43,94 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="card animate-fade-in">
-      <div className="auth-logo"><img src="/logo.png" alt="iGlobals" style={{ height: 40 }} /></div>
-      <h1 className="auth-title">New password</h1>
-      <p className="auth-subtitle">Choose a strong password for your I-con account.</p>
+    <div className="auth-screen">
+      <div className="auth-card">
+        <div className="auth-card-grid">
+          {/* Left */}
+          <div className="auth-left">
+            <IGlobalsLogo />
+            <h1 className="auth-title">New password</h1>
+            <p className="auth-subtitle">Choose a strong password for your I-con account.</p>
+          </div>
 
-      {success ? (
-        <div className="alert alert-success">
-          <CheckCircle size={16} />
-          <span>Password reset successfully! Redirecting to sign in…</span>
+          {/* Right */}
+          <div className="auth-right">
+            {success ? (
+              <div className="alert alert-success">
+                <CheckCircle size={16} />
+                <span>Password reset successfully! Redirecting to sign in…</span>
+              </div>
+            ) : (
+              <>
+                {error && (
+                  <div className="alert alert-error">
+                    <AlertCircle size={16} />
+                    <span>{error}</span>
+                  </div>
+                )}
+                
+                <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  <div className="auth-field">
+                    <div className={`auth-field-inner ${password ? 'has-value' : ''}`}>
+                      <label className="auth-field-label">New password</label>
+                      <input
+                        id="new-password"
+                        type={showPwd ? 'text' : 'password'}
+                        className="auth-field-input"
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        autoComplete="new-password"
+                        disabled={loading}
+                      />
+                      <button
+                        type="button"
+                        className="auth-field-toggle"
+                        onClick={() => setShowPwd(p => !p)}
+                      >
+                        {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                    <p className="auth-field-error" style={{ fontSize: '12px', color: 'var(--auth-text-muted)', marginTop: '4px' }}>
+                      Min. 8 characters
+                    </p>
+                  </div>
+
+                  <div className="auth-field">
+                    <div className={`auth-field-inner ${confirm ? 'has-value' : ''}`}>
+                      <label className="auth-field-label">Confirm password</label>
+                      <input
+                        id="new-confirm"
+                        type={showPwd ? 'text' : 'password'}
+                        className="auth-field-input"
+                        value={confirm}
+                        onChange={e => setConfirm(e.target.value)}
+                        autoComplete="new-password"
+                        disabled={loading}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="auth-actions-end">
+                    <button
+                      id="btn-reset-password"
+                      type="submit"
+                      className="auth-btn-primary"
+                      disabled={loading || !password || !confirm || !token}
+                    >
+                      {loading ? 'Resetting…' : 'Reset password'}
+                    </button>
+                  </div>
+                </form>
+
+                <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '14px' }}>
+                  <a href="/login" className="auth-link">Back to sign in</a>
+                </p>
+              </>
+            )}
+          </div>
         </div>
-      ) : (
-        <>
-          {error && <div className="alert alert-error"><AlertCircle size={16} /><span>{error}</span></div>}
-          <form onSubmit={handleSubmit} noValidate>
-            <div className="form-group">
-              <label className="form-label" htmlFor="new-password">New password</label>
-              <div className="input-wrapper">
-                <span className="input-icon"><Lock size={16} /></span>
-                <input id="new-password" type={showPwd ? 'text' : 'password'} className="form-input"
-                  placeholder="Min. 8 characters" value={password} onChange={e => setPassword(e.target.value)}
-                  autoComplete="new-password" disabled={loading} />
-                <button type="button" className="input-action" onClick={() => setShowPwd(p => !p)}>
-                  {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-            <div className="form-group">
-              <label className="form-label" htmlFor="new-confirm">Confirm password</label>
-              <div className="input-wrapper">
-                <span className="input-icon"><Lock size={16} /></span>
-                <input id="new-confirm" type={showPwd ? 'text' : 'password'} className="form-input"
-                  placeholder="••••••••" value={confirm} onChange={e => setConfirm(e.target.value)}
-                  autoComplete="new-password" disabled={loading} />
-              </div>
-            </div>
-            <button id="btn-reset-password" type="submit" className="btn btn-primary btn-full"
-              disabled={loading || !password || !confirm || !token}>
-              {loading ? <span className="spinner" /> : null}
-              {loading ? 'Resetting…' : 'Reset password'}
-            </button>
-          </form>
-        </>
-      )}
-      <p style={{ textAlign: 'center', marginTop: 20, fontSize: 14 }}>
-        <Link href="/login">Back to sign in</Link>
-      </p>
+      </div>
+      <Footer />
     </div>
   );
 }

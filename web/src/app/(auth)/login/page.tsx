@@ -115,7 +115,12 @@ export default function LoginPage() {
                                 <button type="button" onClick={handleCreateAccount} className="auth-btn-ghost">
                                     Create account
                                 </button>
-                                <button type="button" onClick={handleNext} className="auth-btn-primary">
+                                <button 
+                                    type="button" 
+                                    onClick={handleNext} 
+                                    className="auth-btn-primary"
+                                    disabled={!email.trim()}
+                                >
                                     Next
                                 </button>
                             </div>

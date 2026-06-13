@@ -16,16 +16,16 @@ export const ChevronDownIcon = () => (
     </svg>
 );
 
-export const CheckIcon = () => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+export const CheckIcon = ({ className }: { className?: string }) => (
+    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="20 6 9 17 4 12"/>
     </svg>
 );
 
 /* ---- iGlobals Logo ---- */
-export const IGlobalsLogo = ({ style }: { style?: React.CSSProperties }) => (
+export const IGlobalsLogo = ({ style, className }: { style?: React.CSSProperties; className?: string }) => (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src="/logo.png" alt="iGlobals" className="auth-logo" style={style} />
+    <img src="/logo.png" alt="iGlobals" className={className || "auth-logo"} style={style} />
 );
 
 /* ---- Back Button ---- */

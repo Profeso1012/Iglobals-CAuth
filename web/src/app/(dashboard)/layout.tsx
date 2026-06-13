@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { LayoutDashboard, User, Shield, Grid3x3, LogOut, AlertCircle } from 'lucide-react';
+import { LayoutDashboard, User, Shield, Grid3x3, LogOut, AlertCircle, Menu, X } from 'lucide-react';
 
 interface ICAUser {
   id: string; email: string; email_verified: boolean; phone: string | null;
@@ -22,6 +22,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const [user, setUser] = useState<ICAUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     fetch('/api/auth/me', { credentials: 'include' })
@@ -50,8 +51,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="dashboard-layout">
+      {/* Mobile menu button */}
+      <button 
+        className="mobile-menu-toggle"
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        aria-label="Toggle menu"
+      >
+        {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+      </button>
+
+      {/* Overlay for mobile */}
+      {mobileMenuOpen && (
+        <div 
+          className="mobile-overlay"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-logo">
           <img src="/logo.png" alt="iGlobals" style={{ height: 28 }} />
         </div>
@@ -84,6 +102,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               key={href}
               href={href}
               className={`sidebar-link${pathname === href || pathname.startsWith(href + '/') ? ' active' : ''}`}
+              onClick={() => setMobileMenuOpen(false)}
             >
               <Icon size={18} />
               {label}
