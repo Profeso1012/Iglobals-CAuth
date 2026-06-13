@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: iglobals-auth
+Version: 1.0.0
+Summary: iGlobals Central Auth SDK for Python
+Author-email: iGlobals <engineering@iglobals.com>
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: requests>=2.28.0
+Requires-Dist: PyJWT[crypto]>=2.8.0
+Provides-Extra: fastapi
+Requires-Dist: fastapi>=0.100.0; extra == "fastapi"
+Provides-Extra: flask
+Requires-Dist: Flask>=2.0.0; extra == "flask"
+
+# iglobals-auth
+Python SDK for iGlobals Central Auth.

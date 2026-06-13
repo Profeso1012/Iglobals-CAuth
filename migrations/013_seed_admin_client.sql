@@ -1,0 +1,1 @@
+-- We will seed a client for the admin panel here or test app

@@ -1,0 +1,15 @@
+README.md
+pyproject.toml
+iglobals_auth/__init__.py
+iglobals_auth/client.py
+iglobals_auth/errors.py
+iglobals_auth/fastapi.py
+iglobals_auth/flask.py
+iglobals_auth/jwks.py
+iglobals_auth/pkce.py
+iglobals_auth/types.py
+iglobals_auth.egg-info/PKG-INFO
+iglobals_auth.egg-info/SOURCES.txt
+iglobals_auth.egg-info/dependency_links.txt
+iglobals_auth.egg-info/requires.txt
+iglobals_auth.egg-info/top_level.txt

@@ -1,0 +1,20 @@
+{
+  "name": "@iglobals/auth-client",
+  "version": "1.0.0",
+  "description": "iGlobals Central Auth SDK for Node.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w"
+  },
+  "dependencies": {
+    "jsonwebtoken": "^9.0.2",
+    "jwks-rsa": "^3.1.0"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/express": "^4.17.21",
+    "typescript": "^5.3.3"
+  }
+}

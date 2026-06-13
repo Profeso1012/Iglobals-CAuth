@@ -1,0 +1,22 @@
+{
+  "name": "iglobals-central-auth",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "api",
+    "web",
+    "sdk-js"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace=api",
+    "dev:web": "npm run dev --workspace=web",
+    "build:api": "npm run build --workspace=api",
+    "build:web": "npm run build --workspace=web",
+    "build:sdk": "npm run build --workspace=sdk-js",
+    "test": "npm test --workspaces"
+  },
+  "devDependencies": {
+    "dotenv": "^16.4.5",
+    "pg": "^8.11.5"
+  }
+}
