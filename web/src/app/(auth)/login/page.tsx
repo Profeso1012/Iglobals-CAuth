@@ -1,12 +1,16 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { BackButton, Footer, IGlobalsLogo, InputField } from '@/components/GoogleAuthUI';
 
 export default function LoginPage() {
     const router = useRouter();
-    const params = useSearchParams();
+    const [searchParams, setSearchParams] = useState<URLSearchParams | null>(null);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') setSearchParams(new URLSearchParams(window.location.search));
+    }, []);
 
     const [step, setStep] = useState<'email' | 'password'>('email');
     const [email, setEmail] = useState('');
@@ -14,12 +18,12 @@ export default function LoginPage() {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const oauthContext = params.get('client_id') ? {
-        client_id: params.get('client_id'),
-        redirect_uri: params.get('redirect_uri'),
-        state: params.get('state'),
-        code_challenge: params.get('code_challenge'),
-        scopes: params.get('scope')?.split(' '),
+    const oauthContext = searchParams?.get('client_id') ? {
+        client_id: searchParams.get('client_id'),
+        redirect_uri: searchParams.get('redirect_uri'),
+        state: searchParams.get('state'),
+        code_challenge: searchParams.get('code_challenge'),
+        scopes: searchParams.get('scope')?.split(' '),
     } : undefined;
 
     const handleNext = () => {
@@ -78,7 +82,8 @@ export default function LoginPage() {
     };
 
     const handleCreateAccount = () => {
-        router.push(`/register${params.toString() ? '?' + params.toString() : ''}`);
+        const qs = searchParams?.toString();
+        router.push(`/register${qs ? '?' + qs : ''}`);
     };
 
     /* ---- Email step ---- */

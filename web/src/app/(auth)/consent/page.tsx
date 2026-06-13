@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { CheckIcon, Footer, IGlobalsLogo } from '@/components/GoogleAuthUI';
 
 const SCOPE_LABELS: Record<string, { label: string; desc: string }> = {
@@ -13,22 +12,29 @@ const SCOPE_LABELS: Record<string, { label: string; desc: string }> = {
 };
 
 export default function ConsentPage() {
-    const params = useSearchParams();
+    const [searchParams, setSearchParams] = useState<URLSearchParams | null>(null);
     const [client, setClient] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [deciding, setDeciding] = useState(false);
     const [error, setError] = useState('');
 
-    const clientId = params.get('client_id') || '';
-    const redirectUri = params.get('redirect_uri') || '';
-    const state = params.get('state') || '';
-    const codeChallenge = params.get('code_challenge') || '';
-    const scopes = (params.get('scope') || 'openid').split(' ');
+    const clientId = searchParams?.get('client_id') || '';
+    const redirectUri = searchParams?.get('redirect_uri') || '';
+    const state = searchParams?.get('state') || '';
+    const codeChallenge = searchParams?.get('code_challenge') || '';
+    const scopes = (searchParams?.get('scope') || 'openid').split(' ');
 
     useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setSearchParams(new URLSearchParams(window.location.search));
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!searchParams) return;
         setClient({ client_id: clientId, name: clientId, logo_url: null, redirect_uris: [redirectUri] });
         setLoading(false);
-    }, [clientId]);
+    }, [searchParams, clientId, redirectUri]);
 
     async function handleDecision(decision: 'allow' | 'deny') {
         setDeciding(true); setError('');

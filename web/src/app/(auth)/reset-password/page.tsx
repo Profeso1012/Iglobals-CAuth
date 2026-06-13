@@ -1,14 +1,18 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useState, FormEvent, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Lock, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
 import { Footer, IGlobalsLogo, InputField } from '@/components/GoogleAuthUI';
 
 export default function ResetPasswordPage() {
-  const params = useSearchParams();
+  const [searchParams, setSearchParams] = useState<URLSearchParams | null>(null);
   const router = useRouter();
-  const token = params.get('token') || '';
+  const token = searchParams?.get('token') || '';
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') setSearchParams(new URLSearchParams(window.location.search));
+  }, []);
 
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
