@@ -16,7 +16,7 @@ module.exports = async (req, res, next) => {
       return res.status(400).json({ error: 'already_verified', error_description: 'Email is already verified.', status: 400 });
     }
 
-    const otp = generateOTP();
+    const otp = "111111"; //generateOTP();
     const otp_hash = await hashOTP(otp);
     await createEmailVerification({ user_id: user.id, email: user.email, otp_hash });
     await sendOTP(user.email, otp);

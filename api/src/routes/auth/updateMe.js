@@ -10,6 +10,11 @@ module.exports = async (req, res, next) => {
     for (const field of ALLOWED_FIELDS) {
       if (req.body[field] !== undefined) updates[field] = req.body[field];
     }
+    
+    // If phone number is updated, we must reset its verification status
+    if (updates.phone !== undefined && updates.phone !== user.phone) {
+      updates.phone_verified = false;
+    }
 
     if (Object.keys(updates).length === 0) {
       return res.status(422).json({ error: 'validation_error', error_description: 'No updatable fields provided.', status: 422 });

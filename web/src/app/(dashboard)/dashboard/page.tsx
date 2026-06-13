@@ -44,16 +44,20 @@ export default function DashboardPage() {
       {/* Quick-stat row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 32 }}>
         {[
-          { label: 'Email', value: user.email, verified: user.email_verified },
-          { label: 'Phone', value: user.phone || 'Not set', verified: user.phone_verified },
-        ].map(({ label, value, verified }) => (
+          { label: 'Email', value: user.email, verified: user.email_verified, verifyHref: '/verify-email' },
+          { label: 'Phone', value: user.phone || 'Not set', verified: user.phone_verified, verifyHref: '/verify-phone' },
+        ].map(({ label, value, verified, verifyHref }) => (
           <div key={label} className="section-card" style={{ margin: 0 }}>
             <div style={{ padding: 16 }}>
               <p style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 4 }}>{label}</p>
               <p style={{ fontSize: 14, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</p>
-              <span className={`badge ${verified ? 'badge-green' : 'badge-red'}`} style={{ marginTop: 8 }}>
-                {verified ? 'Verified' : 'Unverified'}
-              </span>
+              {verified ? (
+                <span className="badge badge-green" style={{ marginTop: 8, display: 'inline-block' }}>Verified</span>
+              ) : (
+                <Link href={verifyHref} style={{ textDecoration: 'none' }}>
+                  <span className="badge badge-red" style={{ marginTop: 8, display: 'inline-block', cursor: 'pointer' }}>Unverified</span>
+                </Link>
+              )}
             </div>
           </div>
         ))}

@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Chrome Sign In / Sign Up</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'media',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Roboto', 'sans-serif'],
+                    },
+                    colors: {
+                        google: {
+                            blue: '#1a73e8',
+                            blueHover: '#1557b0',
+                            darkBg: '#202124',
+                            darkCard: '#0e0e0e', // Much darker card
+                            lightBg: '#f0f4f9',
+                            lightCard: '#ffffff',
+                            textDark: '#e8eaed',
+                            textLight: '#3c4043',
+                            link: '#8ab4f8',
+                            borderDark: '#5f6368',
+                            borderLight: '#dadce0',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-google-lightBg dark:bg-google-darkBg min-h-screen transition-colors duration-300">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- SVG Icons ---
+        const ArrowLeftIcon = ({ className }) => (
+            <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+        );
+
+        const ChevronDownIcon = ({ className }) => (
+            <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 9l6 6 6-6"/>
+            </svg>
+        );
+
+        const CheckIcon = ({ className }) => (
+            <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+            </svg>
+        );
+
+        const GoogleLogo = ({ className }) => (
+            <svg className={className} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+        );
+
+        // --- Components ---
+
+        const BackButton = ({ onClick }) => (
+            <button onClick={onClick} className="absolute top-4 left-4 p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors z-10">
+                <ArrowLeftIcon className="w-5 h-5 text-google-textLight dark:text-google-textDark" />
+            </button>
+        );
+
+        const Footer = () => (
+            <div className="w-full max-w-[900px] mx-auto px-8 py-4 flex flex-col sm:flex-row justify-between items-center text-sm text-google-textLight dark:text-google-textDark gap-4">
+                <div className="flex items-center gap-2 cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 px-2 py-1 rounded transition-colors">
+                    <span>English (United States)</span>
+                    <ChevronDownIcon className="w-4 h-4" />
+                </div>
+                <div className="flex gap-6">
+                    <a href="#" className="hover:bg-black/5 dark:hover:bg-white/10 px-2 py-1 rounded transition-colors">Help</a>
+                    <a href="#" className="hover:bg-black/5 dark:hover:bg-white/10 px-2 py-1 rounded transition-colors">Privacy</a>
+                    <a href="#" className="hover:bg-black/5 dark:hover:bg-white/10 px-2 py-1 rounded transition-colors">Terms</a>
+                </div>
+            </div>
+        );
+
+        const InputField = ({ label, type = "text", value, onChange, error, suffix, autoFocus }) => {
+            const [isFocused, setIsFocused] = useState(false);
+            const [showPassword, setShowPassword] = useState(false);
+            const isPassword = type === "password";
+            const inputType = isPassword ? (showPassword ? "text" : "password") : type;
+
+            return (
+                <div className="relative w-full">
+                    <div className={`
+                        relative flex items-center border rounded-lg px-4 py-3 transition-all duration-200 bg-transparent
+                        ${error ? 'border-red-500' : (isFocused || value ? 'border-google-blue dark:border-google-link ring-1 ring-google-blue dark:ring-google-link' : 'border-google-borderLight dark:border-google-borderDark')}
+                    `}>
+                        <div className="flex-1">
+                            <label className={`
+                                absolute left-4 transition-all duration-200 pointer-events-none bg-google-lightCard dark:bg-google-darkCard px-1
+                                ${isFocused || value ? '-top-2.5 text-xs text-google-blue dark:text-google-link' : 'top-3.5 text-base text-gray-500 dark:text-gray-400'}
+                            `}>
+                                {label}
+                            </label>
+                            <input
+                                type={inputType}
+                                value={value}
+                                onChange={onChange}
+                                onFocus={() => setIsFocused(true)}
+                                onBlur={() => setIsFocused(false)}
+                                autoFocus={autoFocus}
+                                className="w-full bg-transparent outline-none text-google-textLight dark:text-google-textDark pt-1 pb-0 text-base"
+                            />
+                        </div>
+                        {suffix && <span className="text-gray-500 dark:text-gray-400 ml-2">{suffix}</span>}
+                    </div>
+                    {error && <p className="text-red-500 text-xs mt-1 ml-1">{error}</p>}
+                </div>
+            );
+        };
+
+        const SelectField = ({ label, value, onChange, options }) => {
+            const [isOpen, setIsOpen] = useState(false);
+            return (
+                <div className="relative w-full">
+                    <label className="block text-xs text-google-blue dark:text-google-link mb-1 ml-1">{label}</label>
+                    <button
+                        onClick={() => setIsOpen(!isOpen)}
+                        className="w-full flex items-center justify-between border border-google-borderLight dark:border-google-borderDark rounded-lg px-4 py-3 text-google-textLight dark:text-google-textDark hover:bg-black/5 dark:hover:bg-white/5 transition-colors bg-transparent"
+                    >
+                        <span>{value}</span>
+                        <ChevronDownIcon className="w-5 h-5" />
+                    </button>
+                    {isOpen && (
+                        <div className="absolute z-10 w-full mt-1 bg-white dark:bg-google-darkCard border border-google-borderLight dark:border-google-borderDark rounded-lg shadow-lg max-h-60 overflow-auto">
+                            {options.map((opt) => (
+                                <button
+                                    key={opt}
+                                    onClick={() => { onChange(opt); setIsOpen(false); }}
+                                    className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-white/10 text-google-textLight dark:text-google-textDark transition-colors"
+                                >
+                                    {opt}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- Pages ---
+
+        const SignInPage = ({ onNext, onCreateAccount }) => {
+            const [email, setEmail] = useState("");
+            const [error, setError] = useState("");
+
+            const handleNext = () => {
+                if (!email) {
+                    setError("Enter an email or phone number");
+                    return;
+                }
+                onNext(email);
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col items-center justify-center p-4 relative">
+                    <BackButton onClick={() => {}} />
+                    <div className="w-full max-w-[900px] bg-white dark:bg-google-darkCard rounded-2xl shadow-lg p-8 md:p-12">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+                            {/* Left Column */}
+                            <div className="flex flex-col">
+                                <GoogleLogo className="w-12 h-12 mb-4" />
+                                <h1 className="text-2xl md:text-3xl font-normal text-google-textLight dark:text-google-textDark mb-2">Sign in to Chrome</h1>
+                                <p className="text-google-textLight dark:text-google-textDark">Use your Google Account</p>
+                            </div>
+
+                            {/* Right Column */}
+                            <div className="space-y-6">
+                                <InputField
+                                    label="Email or phone"
+                                    value={email}
+                                    onChange={(e) => { setEmail(e.target.value); setError(""); }}
+                                    error={error}
+                                    autoFocus={true}
+                                />
+                                <a href="#" className="block text-google-blue dark:text-google-link font-medium text-sm hover:underline">Forgot email?</a>
+
+                                <div className="text-sm text-google-textLight dark:text-google-textDark pt-4">
+                                    Not your computer? Use Guest mode to sign in privately. <a href="#" className="text-google-blue dark:text-google-link font-medium hover:underline">Learn more about using Guest mode</a>
+                                </div>
+
+                                <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-4">
+                                    <button onClick={onCreateAccount} className="text-google-blue dark:text-google-link font-medium hover:bg-blue-50 dark:hover:bg-white/5 px-4 py-2 rounded-full transition-colors">
+                                        Create account
+                                    </button>
+                                    <button onClick={handleNext} className="bg-google-blue hover:bg-google-blueHover text-white px-6 py-2.5 rounded-full font-medium transition-colors shadow-sm">
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const PasswordPage = ({ email, onBack }) => {
+            const [password, setPassword] = useState("");
+            const [showPassword, setShowPassword] = useState(false);
+
+            return (
+                <div className="min-h-screen flex flex-col items-center justify-center p-4 relative">
+                    <BackButton onClick={onBack} />
+                    <div className="w-full max-w-[900px] bg-white dark:bg-google-darkCard rounded-2xl shadow-lg p-8 md:p-12">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+                            {/* Left Column */}
+                            <div className="flex flex-col">
+                                <GoogleLogo className="w-12 h-12 mb-4" />
+                                <h1 className="text-2xl md:text-3xl font-normal text-google-textLight dark:text-google-textDark mb-2">Welcome</h1>
+                                <div className="flex items-center gap-2 mt-2 border border-google-borderLight dark:border-google-borderDark rounded-full px-3 py-1.5 w-fit">
+                                    <div className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300">
+                                        {email.charAt(0).toUpperCase()}
+                                    </div>
+                                    <span className="text-sm text-google-textLight dark:text-google-textDark">{email}</span>
+                                    <ChevronDownIcon className="w-4 h-4 text-google-textLight dark:text-google-textDark" />
+                                </div>
+                            </div>
+
+                            {/* Right Column */}
+                            <div className="space-y-6">
+                                <div className="relative">
+                                    <div className={`
+                                        relative flex items-center border rounded-lg px-4 py-3 transition-all duration-200 bg-transparent
+                                        ${password.length > 0 ? 'border-google-blue dark:border-google-link ring-1 ring-google-blue dark:ring-google-link' : 'border-google-borderLight dark:border-google-borderDark'}
+                                    `}>
+                                        <div className="flex-1">
+                                            <label className={`
+                                                absolute left-4 transition-all duration-200 pointer-events-none bg-google-lightCard dark:bg-google-darkCard px-1
+                                                ${password.length > 0 ? '-top-2.5 text-xs text-google-blue dark:text-google-link' : 'top-3.5 text-base text-gray-500 dark:text-gray-400'}
+                                            `}>
+                                                Enter your password
+                                            </label>
+                                            <input
+                                                type={showPassword ? "text" : "password"}
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                autoFocus={true}
+                                                className="w-full bg-transparent outline-none text-google-textLight dark:text-google-textDark pt-1 pb-0 text-base"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="w-5 h-5 border border-google-borderLight dark:border-google-borderDark rounded flex items-center justify-center transition-colors hover:border-google-blue dark:hover:border-google-link"
+                                    >
+                                        {showPassword && <CheckIcon className="w-3.5 h-3.5 text-google-blue dark:text-google-link" />}
+                                    </button>
+                                    <span className="text-sm text-google-textLight dark:text-google-textDark">Show password</span>
+                                </div>
+
+                                <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-4">
+                                    <a href="#" className="text-google-blue dark:text-google-link font-medium hover:bg-blue-50 dark:hover:bg-white/5 px-4 py-2 rounded-full transition-colors">
+                                        Forgot password?
+                                    </a>
+                                    <button className="bg-google-blue hover:bg-google-blueHover text-white px-6 py-2.5 rounded-full font-medium transition-colors shadow-sm">
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const BasicInfoPage = ({ onNext, onBack }) => {
+            const [month, setMonth] = useState("February");
+            const [day, setDay] = useState("09");
+            const [year, setYear] = useState("2002");
+            const [gender, setGender] = useState("Male");
+
+            const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const genders = ["Female", "Male", "Rather not say", "Custom"];
+
+            return (
+                <div className="min-h-screen flex flex-col items-center justify-center p-4 relative">
+                    <BackButton onClick={onBack} />
+                    <div className="w-full max-w-[900px] bg-white dark:bg-google-darkCard rounded-2xl shadow-lg p-8 md:p-12">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+                            {/* Left Column */}
+                            <div className="flex flex-col">
+                                <GoogleLogo className="w-12 h-12 mb-4" />
+                                <h1 className="text-2xl md:text-3xl font-normal text-google-textLight dark:text-google-textDark mb-2">Basic information</h1>
+                                <p className="text-google-textLight dark:text-google-textDark">Enter your birthday and gender</p>
+                            </div>
+
+                            {/* Right Column */}
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-3 gap-4">
+                                    <SelectField label="Month" value={month} onChange={setMonth} options={months} />
+                                    <InputField label="Day" value={day} onChange={(e) => setDay(e.target.value)} />
+                                    <InputField label="Year" value={year} onChange={(e) => setYear(e.target.value)} />
+                                </div>
+
+                                <SelectField label="Gender" value={gender} onChange={setGender} options={genders} />
+
+                                <a href="#" className="block text-google-blue dark:text-google-link text-sm font-medium hover:underline">Why we ask for your birthday and gender</a>
+
+                                <div className="flex justify-end pt-4">
+                                    <button onClick={onNext} className="bg-google-blue hover:bg-google-blueHover text-white px-6 py-2.5 rounded-full font-medium transition-colors shadow-sm">
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const CreateEmailPage = ({ onNext, onBack }) => {
+            const [selectedOption, setSelectedOption] = useState("custom");
+            const [customEmail, setCustomEmail] = useState("");
+
+            const suggestions = [
+                "gvghvhv1@gmail.com",
+                "g9618849@gmail.com"
+            ];
+
+            return (
+                <div className="min-h-screen flex flex-col items-center justify-center p-4 relative">
+                    <BackButton onClick={onBack} />
+                    <div className="w-full max-w-[900px] bg-white dark:bg-google-darkCard rounded-2xl shadow-lg p-8 md:p-12">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+                            {/* Left Column */}
+                            <div className="flex flex-col">
+                                <GoogleLogo className="w-12 h-12 mb-4" />
+                                <h1 className="text-2xl md:text-3xl font-normal text-google-textLight dark:text-google-textDark mb-2">Create an email address</h1>
+                                <p className="text-google-textLight dark:text-google-textDark">Create a Gmail address for signing in to your Google Account</p>
+                            </div>
+
+                            {/* Right Column */}
+                            <div className="space-y-4">
+                                {suggestions.map((email) => (
+                                    <label key={email} className="flex items-center gap-4 p-4 rounded-lg border border-google-borderLight dark:border-google-borderDark cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                                        <input
+                                            type="radio"
+                                            name="email"
+                                            value={email}
+                                            checked={selectedOption === email}
+                                            onChange={() => setSelectedOption(email)}
+                                            className="w-5 h-5 accent-google-blue"
+                                        />
+                                        <span className="text-google-textLight dark:text-google-textDark">{email}</span>
+                                    </label>
+                                ))}
+
+                                <label className="flex items-start gap-4 p-4 rounded-lg border border-google-borderLight dark:border-google-borderDark cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                                    <input
+                                        type="radio"
+                                        name="email"
+                                        value="custom"
+                                        checked={selectedOption === "custom"}
+                                        onChange={() => setSelectedOption("custom")}
+                                        className="w-5 h-5 mt-1 accent-google-blue"
+                                    />
+                                    <div className="flex-1">
+                                        <span className="text-google-textLight dark:text-google-textDark block mb-2">Create your own Gmail address</span>
+                                        {selectedOption === "custom" && (
+                                            <div className="relative">
+                                                <div className="flex items-center border border-google-borderLight dark:border-google-borderDark rounded-lg px-4 py-3 bg-transparent focus-within:border-google-blue dark:focus-within:border-google-link focus-within:ring-1 focus-within:ring-google-blue dark:focus-within:ring-google-link transition-all">
+                                                    <input
+                                                        type="text"
+                                                        value={customEmail}
+                                                        onChange={(e) => setCustomEmail(e.target.value)}
+                                                        autoFocus={true}
+                                                        className="w-full bg-transparent outline-none text-google-textLight dark:text-google-textDark"
+                                                    />
+                                                    <span className="text-gray-500 dark:text-gray-400 ml-2">@gmail.com</span>
+                                                </div>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">You can use letters, numbers & periods</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </label>
+
+                                <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-6">
+                                    <a href="#" className="text-google-blue dark:text-google-link font-medium hover:bg-blue-50 dark:hover:bg-white/5 px-4 py-2 rounded-full transition-colors">
+                                        Use your existing email
+                                    </a>
+                                    <button onClick={onNext} className="bg-google-blue hover:bg-google-blueHover text-white px-6 py-2.5 rounded-full font-medium transition-colors shadow-sm">
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const CreatePasswordPage = ({ onBack }) => {
+            const [password, setPassword] = useState("");
+            const [confirm, setConfirm] = useState("");
+            const [showPassword, setShowPassword] = useState(false);
+
+            return (
+                <div className="min-h-screen flex flex-col items-center justify-center p-4 relative">
+                    <BackButton onClick={onBack} />
+                    <div className="w-full max-w-[900px] bg-white dark:bg-google-darkCard rounded-2xl shadow-lg p-8 md:p-12">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+                            {/* Left Column */}
+                            <div className="flex flex-col">
+                                <GoogleLogo className="w-12 h-12 mb-4" />
+                                <h1 className="text-2xl md:text-3xl font-normal text-google-textLight dark:text-google-textDark mb-2">Create a strong password</h1>
+                                <p className="text-google-textLight dark:text-google-textDark">Create a strong password with a mix of letters, numbers and symbols</p>
+                            </div>
+
+                            {/* Right Column */}
+                            <div className="space-y-6">
+                                <div className="relative">
+                                    <div className={`
+                                        relative flex items-center border rounded-lg px-4 py-3 transition-all duration-200 bg-transparent
+                                        ${password.length > 0 ? 'border-google-blue dark:border-google-link ring-1 ring-google-blue dark:ring-google-link' : 'border-google-borderLight dark:border-google-borderDark'}
+                                    `}>
+                                        <div className="flex-1">
+                                            <label className={`
+                                                absolute left-4 transition-all duration-200 pointer-events-none bg-google-lightCard dark:bg-google-darkCard px-1
+                                                ${password.length > 0 ? '-top-2.5 text-xs text-google-blue dark:text-google-link' : 'top-3.5 text-base text-gray-500 dark:text-gray-400'}
+                                            `}>
+                                                Password
+                                            </label>
+                                            <input
+                                                type={showPassword ? "text" : "password"}
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                autoFocus={true}
+                                                className="w-full bg-transparent outline-none text-google-textLight dark:text-google-textDark pt-1 pb-0 text-base"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="relative">
+                                    <div className={`
+                                        relative flex items-center border rounded-lg px-4 py-3 transition-all duration-200 bg-transparent
+                                        ${confirm.length > 0 ? 'border-google-blue dark:border-google-link ring-1 ring-google-blue dark:ring-google-link' : 'border-google-borderLight dark:border-google-borderDark'}
+                                    `}>
+                                        <div className="flex-1">
+                                            <label className={`
+                                                absolute left-4 transition-all duration-200 pointer-events-none bg-google-lightCard dark:bg-google-darkCard px-1
+                                                ${confirm.length > 0 ? '-top-2.5 text-xs text-google-blue dark:text-google-link' : 'top-3.5 text-base text-gray-500 dark:text-gray-400'}
+                                            `}>
+                                                Confirm
+                                            </label>
+                                            <input
+                                                type={showPassword ? "text" : "password"}
+                                                value={confirm}
+                                                onChange={(e) => setConfirm(e.target.value)}
+                                                className="w-full bg-transparent outline-none text-google-textLight dark:text-google-textDark pt-1 pb-0 text-base"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="w-5 h-5 border border-google-borderLight dark:border-google-borderDark rounded flex items-center justify-center transition-colors hover:border-google-blue dark:hover:border-google-link"
+                                    >
+                                        {showPassword && <CheckIcon className="w-3.5 h-3.5 text-google-blue dark:text-google-link" />}
+                                    </button>
+                                    <span className="text-sm text-google-textLight dark:text-google-textDark">Show password</span>
+                                </div>
+
+                                <div className="flex justify-end pt-4">
+                                    <button className="bg-google-blue hover:bg-google-blueHover text-white px-6 py-2.5 rounded-full font-medium transition-colors shadow-sm">
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <Footer />
+                </div>
+            );
+        };
+
+        // --- Main App ---
+
+        const App = () => {
+            const [page, setPage] = useState("signin"); 
+            const [email, setEmail] = useState("");
+
+            const handleSignInNext = (enteredEmail) => {
+                setEmail(enteredEmail);
+                setPage("password");
+            };
+
+            const renderPage = () => {
+                switch (page) {
+                    case "signin":
+                        return <SignInPage onNext={handleSignInNext} onCreateAccount={() => setPage("basicinfo")} />;
+                    case "password":
+                        return <PasswordPage email={email} onBack={() => setPage("signin")} />;
+                    case "basicinfo":
+                        return <BasicInfoPage onNext={() => setPage("createemail")} onBack={() => setPage("signin")} />;
+                    case "createemail":
+                        return <CreateEmailPage onNext={() => setPage("createpassword")} onBack={() => setPage("basicinfo")} />;
+                    case "createpassword":
+                        return <CreatePasswordPage onBack={() => setPage("createemail")} />;
+                    default:
+                        return <SignInPage onNext={handleSignInNext} onCreateAccount={() => setPage("basicinfo")} />;
+                }
+            };
+
+            return (
+                <div className="min-h-screen transition-colors duration-300">
+                    {renderPage()}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

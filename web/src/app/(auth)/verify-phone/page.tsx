@@ -63,7 +63,8 @@ export default function VerifyPhonePage() {
   }
 
   return (
-    <div className="card animate-fade-in" style={{ textAlign: 'center' }}>
+    <div className="auth-screen">
+      <div className="auth-card animate-fade-in" style={{ textAlign: 'center' }}>
       <div className="auth-logo"><img src="/logo.png" alt="iGlobals" style={{ height: 40 }} /></div>
       <div style={{ width: 56, height: 56, background: 'var(--color-primary-light)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
         <Phone size={24} color="var(--color-primary)" />
@@ -86,6 +87,7 @@ export default function VerifyPhonePage() {
         {resending ? <span className="spinner spinner-primary" /> : <RefreshCw size={16} />}
         {countdown > 0 ? `Resend in ${countdown}s` : 'Resend code'}
       </button>
+      </div>
     </div>
   );
 }

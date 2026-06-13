@@ -1,164 +1,178 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
-import Link from 'next/link';
+import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Mail, Lock, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
+import { BackButton, Footer, IGlobalsLogo, InputField } from '@/components/GoogleAuthUI';
 
 export default function LoginPage() {
-  const router = useRouter();
-  const params = useSearchParams();
+    const router = useRouter();
+    const params = useSearchParams();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPwd, setShowPwd] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+    const [step, setStep] = useState<'email' | 'password'>('email');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
 
-  // Collect OAuth context from URL params
-  const oauthContext = params.get('client_id') ? {
-    client_id: params.get('client_id'),
-    redirect_uri: params.get('redirect_uri'),
-    state: params.get('state'),
-    code_challenge: params.get('code_challenge'),
-    scopes: params.get('scope')?.split(' '),
-  } : undefined;
+    const oauthContext = params.get('client_id') ? {
+        client_id: params.get('client_id'),
+        redirect_uri: params.get('redirect_uri'),
+        state: params.get('state'),
+        code_challenge: params.get('code_challenge'),
+        scopes: params.get('scope')?.split(' '),
+    } : undefined;
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!email || !password) return;
+    const handleNext = () => {
+        if (!email.trim()) {
+            setError('Enter a valid email address');
+            return;
+        }
+        setError('');
+        setStep('password');
+    };
 
-    setLoading(true);
-    setError('');
+    const handleBack = () => {
+        setError('');
+        setStep('email');
+    };
 
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email, password, remember_me: rememberMe, oauth_context: oauthContext }),
-      });
+    const handleLogin = async () => {
+        if (!password) {
+            setError('Enter a password');
+            return;
+        }
 
-      const data = await res.json();
+        setLoading(true);
+        setError('');
 
-      if (!res.ok) {
-        const map: Record<string, string> = {
-          invalid_credentials: 'Wrong email or password. Please try again.',
-          account_disabled: 'Your account has been disabled. Contact support.',
-          too_many_requests: 'Too many attempts. Try again in 15 minutes.',
-        };
-        setError(map[data.error] || data.error_description || 'Sign-in failed. Please try again.');
-        return;
-      }
+        try {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ email, password, remember_me: true, oauth_context: oauthContext }),
+            });
 
-      if (data.redirect_to?.startsWith('http')) {
-        window.location.href = data.redirect_to;
-      } else {
-        router.push(data.redirect_to || '/dashboard');
-      }
-    } catch {
-      setError('Network error. Check your connection and try again.');
-    } finally {
-      setLoading(false);
+            const data = await res.json();
+
+            if (!res.ok) {
+                const map: Record<string, string> = {
+                    invalid_credentials: 'Wrong email or password. Please try again.',
+                    account_disabled: 'Your account has been disabled. Contact support.',
+                    too_many_requests: 'Too many attempts. Try again in 15 minutes.',
+                };
+                setError(map[data.error] || data.error_description || 'Sign-in failed. Please try again.');
+                return;
+            }
+
+            if (data.redirect_to?.startsWith('http')) {
+                window.location.href = data.redirect_to;
+            } else {
+                router.push(data.redirect_to || '/dashboard');
+            }
+        } catch {
+            setError('Network error. Check your connection and try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCreateAccount = () => {
+        router.push(`/register${params.toString() ? '?' + params.toString() : ''}`);
+    };
+
+    /* ---- Email step ---- */
+    if (step === 'email') {
+        return (
+            <div className="auth-screen">
+                <div className="auth-card">
+                    <div className="auth-card-grid">
+                        {/* Left */}
+                        <div className="auth-left">
+                            <IGlobalsLogo />
+                            <h1 className="auth-title">Sign in to iGlobals</h1>
+                            <p className="auth-subtitle">Use your I-con Account</p>
+                        </div>
+
+                        {/* Right */}
+                        <div className="auth-right">
+                            <InputField
+                                label="Email"
+                                value={email}
+                                onChange={e => { setEmail(e.target.value); setError(''); }}
+                                error={error}
+                                autoFocus
+                            />
+
+                            <a href="/forgot-password" className="auth-link">Forgot email?</a>
+
+                            <p className="auth-hint">
+                                Not your computer? Use Guest mode to sign in privately.{' '}
+                                <a href="#" className="auth-link">Learn more</a>
+                            </p>
+
+                            <div className="auth-actions">
+                                <button type="button" onClick={handleCreateAccount} className="auth-btn-ghost">
+                                    Create account
+                                </button>
+                                <button type="button" onClick={handleNext} className="auth-btn-primary">
+                                    Next
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <Footer />
+            </div>
+        );
     }
-  }
 
-  return (
-    <div className="card animate-fade-in">
-      <div className="auth-logo">
-        <img src="/logo.png" alt="iGlobals" style={{ height: 40 }} />
-      </div>
+    /* ---- Password step ---- */
+    return (
+        <div className="auth-screen">
+            <BackButton onClick={handleBack} />
+            <div className="auth-card">
+                <div className="auth-card-grid">
+                    {/* Left */}
+                    <div className="auth-left">
+                        <IGlobalsLogo />
+                        <h1 className="auth-title">Welcome</h1>
+                        <div className="auth-email-chip">
+                            <div className="auth-email-chip-avatar">
+                                {email.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="auth-email-chip-text">{email}</span>
+                        </div>
+                    </div>
 
-      <h1 className="auth-title">Sign in</h1>
-      <p className="auth-subtitle">
-        {oauthContext ? 'to continue to the requesting app' : 'to your iGlobals account'}
-      </p>
+                    {/* Right */}
+                    <div className="auth-right">
+                        <InputField
+                            label="Enter your password"
+                            type="password"
+                            value={password}
+                            onChange={e => { setPassword(e.target.value); setError(''); }}
+                            error={error}
+                            autoFocus
+                        />
 
-      {error && (
-        <div className="alert alert-error" role="alert">
-          <AlertCircle size={16} style={{ flexShrink: 0 }} />
-          <span>{error}</span>
+                        <div className="auth-actions">
+                            <a href="/forgot-password" className="auth-btn-ghost">
+                                Forgot password?
+                            </a>
+                            <button
+                                type="button"
+                                onClick={handleLogin}
+                                disabled={loading}
+                                className="auth-btn-primary"
+                            >
+                                {loading ? 'Signing in…' : 'Next'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <Footer />
         </div>
-      )}
-
-      <form onSubmit={handleSubmit} noValidate>
-        <div className="form-group">
-          <label className="form-label" htmlFor="email">Email</label>
-          <div className="input-wrapper">
-            <span className="input-icon"><Mail size={16} /></span>
-            <input
-              id="email"
-              type="email"
-              className="form-input"
-              placeholder="you@example.com"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              autoComplete="email"
-              required
-              disabled={loading}
-            />
-          </div>
-        </div>
-
-        <div className="form-group">
-          <label className="form-label" htmlFor="password">Password</label>
-          <div className="input-wrapper">
-            <span className="input-icon"><Lock size={16} /></span>
-            <input
-              id="password"
-              type={showPwd ? 'text' : 'password'}
-              className="form-input"
-              placeholder="••••••••"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              autoComplete="current-password"
-              required
-              disabled={loading}
-            />
-            <button
-              type="button"
-              className="input-action"
-              onClick={() => setShowPwd(p => !p)}
-              aria-label={showPwd ? 'Hide password' : 'Show password'}
-            >
-              {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <label className="checkbox-row">
-            <input
-              type="checkbox"
-              checked={rememberMe}
-              onChange={e => setRememberMe(e.target.checked)}
-              id="remember-me"
-            />
-            <span className="checkbox-label">Remember me</span>
-          </label>
-          <Link href="/forgot-password" style={{ fontSize: 14 }}>Forgot password?</Link>
-        </div>
-
-        <button
-          id="btn-login"
-          type="submit"
-          className="btn btn-primary btn-full"
-          disabled={loading || !email || !password}
-        >
-          {loading ? <span className="spinner" /> : null}
-          {loading ? 'Signing in…' : 'Sign in'}
-        </button>
-      </form>
-
-      <div className="divider">or</div>
-
-      <p style={{ textAlign: 'center', fontSize: 14 }}>
-        New to iGlobals?{' '}
-        <Link href={`/register${params.toString() ? '?' + params.toString() : ''}`}>
-          Become an I-con
-        </Link>
-      </p>
-    </div>
-  );
+    );
 }

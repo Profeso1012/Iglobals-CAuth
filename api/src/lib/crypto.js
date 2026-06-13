@@ -22,7 +22,8 @@ function base64urlEncode(buf) {
 }
 
 function generateOTP() {
-  return crypto.randomInt(100000, 999999).toString();
+  // return crypto.randomInt(100000, 999999).toString();
+  return "123456";
 }
 
 async function hashOTP(otp) {
