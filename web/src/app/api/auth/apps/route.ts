@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     const consents = await listConsentsForUser(session.user_id);
     
     // Format for frontend
-    const apps = consents.map(c => ({
+    const apps = consents.map((c: any) => ({
       client_id: c.client_id,
       name: c.name,
       logo_url: c.logo_url,
