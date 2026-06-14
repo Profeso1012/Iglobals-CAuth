@@ -1,40 +1,72 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CheckIcon, Footer, IGlobalsLogo } from '@/components/GoogleAuthUI';
+import { Footer, IGlobalsLogo } from '@/components/GoogleAuthUI';
 
 const SCOPE_LABELS: Record<string, { label: string; desc: string }> = {
-    openid:  { label: 'Identity',       desc: 'Your unique iGlobals user ID' },
-    profile: { label: 'Profile',        desc: 'Name and basic profile information' },
-    email:   { label: 'Email address',  desc: 'Your verified email address' },
-    phone:   { label: 'Phone number',   desc: 'Your verified phone number' },
-    address: { label: 'Address',        desc: 'Your registered address details' },
+    openid:  { label: 'Identity',      desc: 'Know who you are on iGlobals' },
+    profile: { label: 'Profile',       desc: 'See your name and basic profile info' },
+    email:   { label: 'Email address', desc: 'See your primary email address' },
+    phone:   { label: 'Phone number',  desc: 'See your verified phone number' },
+    address: { label: 'Address',       desc: 'See your registered address details' },
 };
+
+function ShieldCheckIcon() {
+    return (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            <polyline points="9 12 11 14 15 10" />
+        </svg>
+    );
+}
 
 export default function ConsentPage() {
     const [searchParams, setSearchParams] = useState<URLSearchParams | null>(null);
-    const [client, setClient] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-    const [deciding, setDeciding] = useState(false);
-    const [error, setError] = useState('');
+    const [client, setClient]             = useState<any>(null);
+    const [loading, setLoading]           = useState(true);
+    const [deciding, setDeciding]         = useState(false);
+    const [error, setError]               = useState('');
 
-    const clientId = searchParams?.get('client_id') || '';
-    const redirectUri = searchParams?.get('redirect_uri') || '';
-    const state = searchParams?.get('state') || '';
+    const clientId      = searchParams?.get('client_id')      || '';
+    const redirectUri   = searchParams?.get('redirect_uri')   || '';
+    const state         = searchParams?.get('state')          || '';
     const codeChallenge = searchParams?.get('code_challenge') || '';
-    const scopes = (searchParams?.get('scope') || 'openid').split(' ');
+    const scopes        = (searchParams?.get('scope') || 'openid').split(' ');
+    const displayScopes = scopes.includes('openid') ? scopes : ['openid', ...scopes];
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
+        if (typeof window !== 'undefined')
             setSearchParams(new URLSearchParams(window.location.search));
-        }
     }, []);
 
     useEffect(() => {
-        if (!searchParams) return;
-        setClient({ client_id: clientId, name: clientId, logo_url: null, redirect_uris: [redirectUri] });
-        setLoading(false);
-    }, [searchParams, clientId, redirectUri]);
+        if (!searchParams || !clientId) return;
+        
+        // Fetch actual client data from database
+        async function fetchClient() {
+            try {
+                const res = await fetch(`/api/oauth/clients/${clientId}`);
+                if (!res.ok) {
+                    throw new Error('Failed to fetch client info');
+                }
+                const data = await res.json();
+                setClient(data);
+            } catch (err) {
+                console.error('Error fetching client:', err);
+                // Fallback to basic client info
+                setClient({ 
+                    client_id: clientId, 
+                    name: clientId, 
+                    logo_url: null 
+                });
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        fetchClient();
+    }, [searchParams, clientId]);
 
     async function handleDecision(decision: 'allow' | 'deny') {
         setDeciding(true); setError('');
@@ -57,63 +89,79 @@ export default function ConsentPage() {
         </div>
     );
 
+    const appInitial = (client?.name?.charAt(0) ?? '?').toUpperCase();
+
     return (
         <div className="auth-screen">
-            <div className="auth-card" style={{ maxWidth: '500px' }}>
-                <div style={{ padding: '32px' }}>
-                    <div className="flex flex-col items-center text-center mb-6">
+            <div className="auth-card auth-consent-card">
+
+                {/* Header strip */}
+                <div className="auth-consent-header">
+                    <IGlobalsLogo className="auth-consent-header-logo" />
+                    <span className="auth-consent-header-text">Sign in with iGlobals</span>
+                </div>
+
+                {/* Two-column body */}
+                <div className="auth-card-grid auth-consent-grid">
+
+                    {/* LEFT */}
+                    <div className="auth-left auth-consent-left">
                         {client?.logo_url ? (
-                            <img src={client.logo_url} alt={client.name} className="w-16 h-16 rounded-xl border border-google-borderLight dark:border-google-borderDark mb-4" />
+                            <img src={client.logo_url} alt={client.name} className="auth-consent-app-logo" />
                         ) : (
-                            <div className="w-16 h-16 rounded-xl border border-google-borderLight dark:border-google-borderDark flex items-center justify-center mb-4 bg-google-lightBg dark:bg-[#202124]">
-                                <span className="text-2xl font-bold">{client?.name?.charAt(0)?.toUpperCase()}</span>
+                            <div className="auth-consent-app-initial">
+                                <span>{appInitial}</span>
                             </div>
                         )}
-                        <h1 className="text-xl md:text-2xl font-normal mb-1">{client?.name || clientId}</h1>
-                        <p className="text-sm">wants to access your I-con Account</p>
-                    </div>
-
-                    <div className="border border-google-borderLight dark:border-google-borderDark rounded-xl overflow-hidden mb-6">
-                        <div className="bg-google-lightBg dark:bg-[#202124] px-4 py-3 border-b border-google-borderLight dark:border-google-borderDark flex items-center gap-3">
-                            <IGlobalsLogo className="w-6 h-6 object-contain" />
-                            <span className="font-medium text-sm">iGlobals</span>
-                        </div>
-                        <div className="px-4 py-3">
-                            <p className="text-sm font-medium mb-3">This will allow {client?.name} to:</p>
-                            <ul className="space-y-3">
-                                {scopes.map((scope) => (
-                                    <li key={scope} className="flex items-start gap-3">
-                                        <CheckIcon className="w-5 h-5 text-google-blue dark:text-google-link flex-shrink-0 mt-0.5" />
-                                        <div>
-                                            <p className="text-sm">{SCOPE_LABELS[scope]?.label || scope}</p>
-                                        </div>
-                                    </li>
-                                ))}
-                                {!scopes.includes('openid') && (
-                                    <li className="flex items-start gap-3">
-                                        <CheckIcon className="w-5 h-5 text-google-blue dark:text-google-link flex-shrink-0 mt-0.5" />
-                                        <div>
-                                            <p className="text-sm">{SCOPE_LABELS['openid']?.label}</p>
-                                        </div>
-                                    </li>
-                                )}
-                            </ul>
+                        <h1 className="auth-title">{client?.name || clientId}</h1>
+                        <div className="auth-email-chip">
+                            <div className="auth-email-chip-avatar">U</div>
+                            <span className="auth-email-chip-text">user@iglobals.com</span>
                         </div>
                     </div>
 
-                    {error && <p className="text-red-500 text-sm mb-4 text-center">{error}</p>}
+                    {/* Vertical divider */}
+                    <div className="auth-consent-divider" />
 
-                    <p className="text-xs text-center mb-6">
-                        Make sure you trust {client?.name}. You may be sharing sensitive info with this site or app. You can always see or remove access in your I-con Account.
-                    </p>
+                    {/* RIGHT */}
+                    <div className="auth-right auth-consent-right">
+                        <p className="auth-subtitle" style={{ marginBottom: 0 }}>
+                            <strong>{client?.name}</strong> wants to access your I-con Account
+                        </p>
 
-                    <div className="flex flex-col md:flex-row items-center justify-end gap-3">
-                        <button type="button" onClick={() => handleDecision('deny')} disabled={deciding} className="w-full md:w-auto text-google-blue dark:text-google-link font-medium hover:bg-blue-50 dark:hover:bg-white/5 px-6 py-2.5 rounded-full transition-colors disabled:opacity-50">
-                            Cancel
-                        </button>
-                        <button type="button" onClick={() => handleDecision('allow')} disabled={deciding} className="w-full md:w-auto bg-google-blue hover:bg-google-blueHover text-white px-6 py-2.5 rounded-full font-medium transition-colors shadow-sm disabled:opacity-50">
-                            {deciding ? 'Processing...' : 'Allow'}
-                        </button>
+                        <ul className="scope-list auth-consent-scope-list">
+                            {displayScopes.map((scope) => {
+                                const info = SCOPE_LABELS[scope] ?? { label: scope, desc: '' };
+                                return (
+                                    <li key={scope} className="scope-item">
+                                        <span className="scope-icon"><ShieldCheckIcon /></span>
+                                        <div>
+                                            <p className="auth-consent-scope-label">{info.label}</p>
+                                            {info.desc && <p className="scope-desc">{info.desc}</p>}
+                                        </div>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+
+                        <p className="auth-hint">
+                            Make sure you trust <strong>{client?.name}</strong>. You may be sharing
+                            sensitive info with this site or app. You can always see or remove access
+                            in your <a href="#" className="auth-link">I-con Account</a>.
+                        </p>
+
+                        {error && <p className="auth-error-msg">{error}</p>}
+
+                        <div className="auth-actions">
+                            <button type="button" onClick={() => handleDecision('deny')}
+                                disabled={deciding} className="auth-btn-ghost">
+                                Cancel
+                            </button>
+                            <button type="button" onClick={() => handleDecision('allow')}
+                                disabled={deciding} className="auth-btn-primary">
+                                {deciding ? 'Processing…' : 'Allow'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
