@@ -4,10 +4,10 @@ import { getClientById } from '@/lib/db/queries/oauth_clients';
 // GET /api/oauth/clients/:clientId - Get public client information
 export async function GET(
   req: NextRequest,
-  { params }: { params: { clientId: string } }
+  { params }: { params: Promise<{ clientId: string }> }
 ) {
   try {
-    const { clientId } = params;
+    const { clientId } = await params;
 
     if (!clientId) {
       return NextResponse.json(
