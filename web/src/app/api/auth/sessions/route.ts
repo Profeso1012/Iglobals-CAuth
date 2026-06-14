@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     const sessions = await listUserSessions(session.user_id);
     
     // Add current session indicator
-    const sessionsWithCurrent = sessions.map(s => ({
+    const sessionsWithCurrent = sessions.map((s: any) => ({
       ...s,
       is_current: s.id === session.id
     }));
