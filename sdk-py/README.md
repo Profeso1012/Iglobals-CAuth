@@ -90,16 +90,16 @@ def callback():
         verifier = session.get('pkce_verifier')
         tokens = client.exchange_code(code, verifier)
         
-        # Get user info
+        # Get user info (returns a dictionary)
         user_info = client.get_user_info(tokens.access_token)
         
         # Store tokens securely
         session['access_token'] = tokens.access_token
         session['refresh_token'] = tokens.refresh_token
         session['user'] = {
-            'id': user_info.sub,
-            'email': user_info.email,
-            'name': f"{user_info.given_name} {user_info.family_name}"
+            'id': user_info.get('sub'),
+            'email': user_info.get('email'),
+            'name': f"{user_info.get('given_name', '')} {user_info.get('family_name', '')}".strip()
         }
         
         return redirect('/dashboard')
@@ -208,6 +208,13 @@ new_tokens = client.refresh_access_token(tokens.refresh_token)
 
 **Returns:** New `TokenSet` object
 
+**Usage:**
+```python
+new_tokens = client.refresh_access_token(tokens.refresh_token)
+session['access_token'] = new_tokens.access_token
+session['refresh_token'] = new_tokens.refresh_token
+```
+
 ---
 
 ##### `get_user_info(access_token: str)`
@@ -217,17 +224,25 @@ Fetches user profile information.
 user_info = client.get_user_info(tokens.access_token)
 ```
 
-**Returns:** `UserInfoClaims` object
+**Returns:** Dictionary with user info claims
 ```python
-UserInfoClaims(
-    sub='user-id',                # User ID
-    email='user@example.com',     # If 'email' scope
-    email_verified=True,
-    given_name='John',           # If 'profile' scope
-    family_name='Doe',
-    phone_number='+1234567890',  # If 'phone' scope
-    phone_number_verified=True
-)
+{
+    'sub': 'user-id',                # User ID
+    'email': 'user@example.com',     # If 'email' scope
+    'email_verified': True,
+    'given_name': 'John',           # If 'profile' scope
+    'family_name': 'Doe',
+    'phone_number': '+1234567890',  # If 'phone' scope
+    'phone_number_verified': True
+}
+```
+
+**Usage:**
+```python
+user_info = client.get_user_info(tokens.access_token)
+user_id = user_info.get('sub')
+email = user_info.get('email')
+full_name = f"{user_info.get('given_name', '')} {user_info.get('family_name', '')}".strip()
 ```
 
 ---
@@ -333,7 +348,7 @@ async def callback(code: str, state: str):
         user_info = client.get_user_info(tokens.access_token)
         
         return {
-            'user': user_info,
+            'user': user_info,  # Dictionary with user claims
             'tokens': tokens
         }
     except Exception as e:
@@ -434,7 +449,11 @@ def callback(request):
     user_info = client.get_user_info(tokens.access_token)
     
     request.session['access_token'] = tokens.access_token
-    request.session['user'] = user_info.dict()
+    request.session['user'] = {
+        'id': user_info.get('sub'),
+        'email': user_info.get('email'),
+        'name': f"{user_info.get('given_name', '')} {user_info.get('family_name', '')}".strip()
+    }
     
     return HttpResponseRedirect('/dashboard')
 ```
@@ -459,11 +478,11 @@ except Exception as e:
 Fully typed with type hints for better IDE support:
 
 ```python
-from iglobals_auth import IGlobalsAuth, TokenSet, UserInfoClaims
+from iglobals_auth import IGlobalsAuth, TokenSet
 
 client: IGlobalsAuth = IGlobalsAuth(...)
 tokens: TokenSet = client.exchange_code(...)
-user: UserInfoClaims = client.get_user_info(...)
+user: dict = client.get_user_info(...)  # Returns a dictionary
 ```
 
 ## Security Best Practices
@@ -509,6 +528,12 @@ def test_authorization_url(client):
     assert 'auth.test.com' in url
     assert 'client_id=test-client' in url
     assert 'code_challenge=' in url
+
+def test_user_info_is_dict(client):
+    # Mock response
+    user_info = client.get_user_info('fake_token')
+    assert isinstance(user_info, dict)
+    assert 'sub' in user_info
 ```
 
 ## Support

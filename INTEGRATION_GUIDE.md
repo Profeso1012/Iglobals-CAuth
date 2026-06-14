@@ -285,12 +285,12 @@ def callback():
     session['access_token'] = tokens.access_token
     session['refresh_token'] = tokens.refresh_token
     
-    # Get user info
+    # Get user info (returns a dictionary)
     user_info = client.get_user_info(tokens.access_token)
     session['user'] = {
-        'id': user_info.sub,
-        'email': user_info.email,
-        'name': f"{user_info.given_name} {user_info.family_name}"
+        'id': user_info.get('sub'),
+        'email': user_info.get('email'),
+        'name': f"{user_info.get('given_name', '')} {user_info.get('family_name', '')}".strip()
     }
     
     return redirect('/dashboard')
