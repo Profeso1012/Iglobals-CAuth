@@ -2,28 +2,31 @@ import { config } from './config';
 
 export async function sendSMS({ to, message }: { to: string; message: string }) {
   try {
-    // If Termii API key is configured, use Termii
-    if (config.termii.apiKey && config.termii.apiKey !== 'test') {
-      const response = await fetch('https://api.ng.termii.com/api/sms/send', {
+    // If Kudisms token is configured, use Kudisms
+    if (config.kudisms.token && config.kudisms.token !== 'test') {
+      const formData = new FormData();
+      formData.append('token', config.kudisms.token);
+      formData.append('senderID', config.kudisms.senderId);
+      formData.append('recipients', to);
+      formData.append('message', message);
+
+      const response = await fetch('https://my.kudisms.net/api/corporate', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          to,
-          from: config.termii.senderId,
-          sms: message,
-          type: 'plain',
-          channel: 'generic',
-          api_key: config.termii.apiKey,
-        }),
+        body: formData,
       });
 
       if (!response.ok) {
-        throw new Error(`Termii API error: ${response.statusText}`);
+        throw new Error(`Kudisms API error: ${response.statusText}`);
       }
 
-      console.log(`[SMS] Sent via Termii to ${to}`);
+      const result = await response.json();
+      
+      // Check Kudisms response status
+      if (result.error_code !== '000') {
+        throw new Error(`Kudisms error ${result.error_code}: ${result.msg || 'Unknown error'}`);
+      }
+
+      console.log(`[SMS] Sent via Kudisms to ${to} - Cost: ${result.cost}, Balance: ${result.balance}`);
       return true;
     }
 

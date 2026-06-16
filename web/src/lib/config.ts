@@ -15,9 +15,9 @@ export const config = {
     pass: process.env.SMTP_PASS!,
     from: process.env.SMTP_FROM!,
   },
-  termii: {
-    apiKey: process.env.TERMII_API_KEY!,
-    senderId: process.env.TERMII_SENDER_ID!,
+  kudisms: {
+    token: process.env.KUDISMS_TOKEN!,
+    senderId: process.env.KUDISMS_SENDER_ID!,
   },
   adminJwtSecret: process.env.ADMIN_JWT_SECRET!,
   adminSecret: process.env.ADMIN_SECRET,
