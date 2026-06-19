@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { BackButton, Footer, IGlobalsLogo, InputField } from '@/components/GoogleAuthUI';
+import { BackButton, Footer, IGlobalsLogo, InputField, GoogleAuthButton } from '@/components/GoogleAuthUI';
 
 type RegisterStep = 'name' | 'emailPhone' | 'password';
 
@@ -120,6 +120,7 @@ export default function RegisterPage() {
                                 <IGlobalsLogo />
                                 <h1 className="auth-title">Create an I-con account</h1>
                                 <p className="auth-subtitle">Enter your name</p>
+                                <GoogleAuthButton className="desktop-only-btn" oauthContext={oauthContext} />
                             </div>
                             <div className="auth-right">
                                 <InputField
@@ -134,7 +135,10 @@ export default function RegisterPage() {
                                     onChange={e => { setLastName(e.target.value); setError(''); }}
                                 />
                                 {error && <p className="auth-error-msg">{error}</p>}
-                                <div className="auth-actions-end">
+                                <div className="auth-actions-end" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <div className="mobile-only-btn">
+                                        <GoogleAuthButton oauthContext={oauthContext} />
+                                    </div>
                                     <button type="button" onClick={handleNextName} className="auth-btn-primary">
                                         Next
                                     </button>

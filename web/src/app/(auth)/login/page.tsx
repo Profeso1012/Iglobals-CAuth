@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { BackButton, Footer, IGlobalsLogo, InputField } from '@/components/GoogleAuthUI';
+import { BackButton, Footer, IGlobalsLogo, InputField, GoogleAuthButton } from '@/components/GoogleAuthUI';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -97,6 +97,7 @@ export default function LoginPage() {
                             <IGlobalsLogo />
                             <h1 className="auth-title">Sign in to iGlobals</h1>
                             <p className="auth-subtitle">Use your I-con Account</p>
+                            <GoogleAuthButton className="desktop-only-btn" oauthContext={oauthContext} />
                         </div>
 
                         {/* Right */}
@@ -111,10 +112,9 @@ export default function LoginPage() {
 
                             <a href="/forgot-password" className="auth-link">Forgot email?</a>
 
-                            <p className="auth-hint">
-                                Not your computer? Use Guest mode to sign in privately.{' '}
-                                <a href="#" className="auth-link">Learn more</a>
-                            </p>
+                            <div className="mobile-only-btn" style={{ marginTop: '16px', marginBottom: '8px' }}>
+                                <GoogleAuthButton oauthContext={oauthContext} />
+                            </div>
 
                             <div className="auth-actions">
                                 <button type="button" onClick={handleCreateAccount} className="auth-btn-ghost">

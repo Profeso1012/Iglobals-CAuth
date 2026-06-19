@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 /* ---- SVG Icons ---- */
 export const ArrowLeftIcon = () => (
@@ -175,6 +176,37 @@ export const SelectField = ({ label, value, onChange, options }: SelectFieldProp
                     ))}
                 </div>
             )}
+        </div>
+    );
+};
+
+/* ---- Google Auth Button ---- */
+export const GoogleAuthButton = ({ className, oauthContext }: { className?: string, oauthContext?: any }) => {
+    const handleGoogleLogin = () => {
+        let url = '/api/auth/google/login';
+        if (oauthContext && oauthContext.client_id) {
+            const params = new URLSearchParams({
+                client_id: oauthContext.client_id,
+                redirect_uri: oauthContext.redirect_uri || '',
+                state: oauthContext.state || '',
+                code_challenge: oauthContext.code_challenge || '',
+                scope: oauthContext.scopes?.join(' ') || 'openid profile email',
+            });
+            url += '?' + params.toString();
+        }
+        window.location.href = url;
+    };
+
+    return (
+        <div className={`auth-google-btn-wrapper ${className || ''}`}>
+            <button
+                type="button"
+                className="auth-google-btn"
+                onClick={handleGoogleLogin}
+                aria-label="Continue with Google"
+            >
+                <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" />
+            </button>
         </div>
     );
 };

@@ -1,16 +1,19 @@
 import { query } from '../pool';
 
-export async function createUser({ email, password_hash, first_name, last_name, phone }: {
+export async function createUser({ email, password_hash, first_name, last_name, phone, auth_provider = 'local', auth_provider_id, email_verified = false }: {
   email: string;
-  password_hash: string;
+  password_hash?: string | null;
   first_name?: string;
   last_name?: string;
   phone?: string;
+  auth_provider?: string;
+  auth_provider_id?: string;
+  email_verified?: boolean;
 }) {
   const result = await query(
-    `INSERT INTO ica.users (email, password_hash, first_name, last_name, phone)
-     VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-    [email, password_hash, first_name, last_name, phone]
+    `INSERT INTO ica.users (email, password_hash, first_name, last_name, phone, auth_provider, auth_provider_id, email_verified)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+    [email, password_hash, first_name, last_name, phone, auth_provider, auth_provider_id, email_verified]
   );
   return result.rows[0];
 }
@@ -22,6 +25,14 @@ export async function getUserById(id: string) {
 
 export async function getUserByEmail(email: string) {
   const result = await query(`SELECT * FROM ica.users WHERE email = $1`, [email]);
+  return result.rows[0] || null;
+}
+
+export async function getUserByProviderId(provider: string, providerId: string) {
+  const result = await query(
+    `SELECT * FROM ica.users WHERE auth_provider = $1 AND auth_provider_id = $2`,
+    [provider, providerId]
+  );
   return result.rows[0] || null;
 }
 
