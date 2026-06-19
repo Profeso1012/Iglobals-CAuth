@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserByEmail, getUserByProviderId, createUser } from '@/lib/db/queries/users';
+import { getUserByEmail, getUserByProviderId, createUser, updateUser } from '@/lib/db/queries/users';
 import { createIcaSession } from '@/lib/session';
 import { logEvent } from '@/lib/db/queries/audit_log';
 import { getClientIp } from '@/lib/api-helpers';
@@ -100,9 +100,14 @@ export async function GET(req: NextRequest) {
           metadata: { provider: 'google' }
         });
       } else {
-        // We could link the account here if we wanted to
-        // For now, let's just proceed with the existing user and assume email means same user
-        // (In a real app, you might want to explicitly link or fail)
+        // Link the Google account to the existing user
+        if (!user.auth_provider_id) {
+          user = await updateUser(user.id, {
+            auth_provider: 'google',
+            auth_provider_id: googleId,
+            email_verified: verified_email === true || user.email_verified
+          });
+        }
       }
     }
 
