@@ -41,20 +41,33 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify current password
-    const isValid = await verifyPassword(current_password, user.password_hash);
-    if (!isValid) {
-      await logEvent({
-        event_type: 'auth.password.change.failed',
-        user_id: session.user_id,
-        ip_address: getClientIp(req),
-        metadata: { reason: 'invalid_current_password' }
-      });
+    // Special case: User signed up with Google and has no password yet
+    // Allow them to set initial password using "*" as current password
+    const isSettingInitialPassword = !user.password_hash && current_password === '*';
 
-      return NextResponse.json(
-        { error: 'invalid_credentials', error_description: 'Current password is incorrect' },
-        { status: 401 }
-      );
+    if (!isSettingInitialPassword) {
+      // Normal password change - verify current password
+      if (!user.password_hash) {
+        return NextResponse.json(
+          { error: 'no_password_set', error_description: 'No password is currently set. Use "*" as current password to set your first password.' },
+          { status: 400 }
+        );
+      }
+
+      const isValid = await verifyPassword(current_password, user.password_hash);
+      if (!isValid) {
+        await logEvent({
+          event_type: 'auth.password.change.failed',
+          user_id: session.user_id,
+          ip_address: getClientIp(req),
+          metadata: { reason: 'invalid_current_password' }
+        });
+
+        return NextResponse.json(
+          { error: 'invalid_credentials', error_description: 'Current password is incorrect' },
+          { status: 401 }
+        );
+      }
     }
 
     // Hash and set new password
@@ -62,12 +75,16 @@ export async function POST(req: NextRequest) {
     await setPassword(session.user_id, newHash);
 
     await logEvent({
-      event_type: 'auth.password.changed',
+      event_type: isSettingInitialPassword ? 'auth.password.set' : 'auth.password.changed',
       user_id: session.user_id,
       ip_address: getClientIp(req),
+      metadata: { method: isSettingInitialPassword ? 'initial_set' : 'change' }
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ 
+      success: true,
+      message: isSettingInitialPassword ? 'Password set successfully' : 'Password changed successfully'
+    });
   } catch (error) {
     console.error('Change password error:', error);
     return NextResponse.json(

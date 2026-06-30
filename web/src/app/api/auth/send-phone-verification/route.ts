@@ -40,8 +40,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate OTP
-    const otp = generateOTP();
+    // Generate OTP (fixed 654321 for phone since no KUDISMS subscription)
+    const otp = generateOTP(true);
     const otpHash = await hashOTP(otp);
     
     await createPhoneVerification({

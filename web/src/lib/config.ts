@@ -8,6 +8,9 @@ export const config = {
   sessionSecret: process.env.SESSION_SECRET!,
   baseUrl: process.env.NEXT_PUBLIC_BASE_URL || process.env.ICA_BASE_URL || 'http://localhost:3000',
   nodeEnv: process.env.NODE_ENV || 'development',
+  brevo: {
+    apiKey: process.env.BREVO_API_KEY,
+  },
   smtp: {
     host: process.env.SMTP_HOST!,
     port: parseInt(process.env.SMTP_PORT || '465', 10),

@@ -3,7 +3,7 @@ import { readIcaSession } from '@/lib/session';
 import { getUserById } from '@/lib/db/queries/users';
 import { createEmailVerification } from '@/lib/db/queries/email_verifications';
 import { generateOTP, hashOTP } from '@/lib/crypto';
-import { sendEmail } from '@/lib/email';
+import { sendEmailVerificationOTP } from '@/lib/mailer';
 import { logEvent } from '@/lib/db/queries/audit_log';
 import { getClientIp } from '@/lib/api-helpers';
 
@@ -33,8 +33,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate OTP
-    const otp = generateOTP();
+    // Generate OTP (random for email verification)
+    const otp = generateOTP(false);
     const otpHash = await hashOTP(otp);
     
     await createEmailVerification({
@@ -43,15 +43,8 @@ export async function POST(req: NextRequest) {
       otp_hash: otpHash
     });
 
-    // Send email
-    await sendEmail({
-      to: user.email,
-      subject: 'Verify your iGlobals account',
-      html: `
-        <p>Your verification code is: <strong>${otp}</strong></p>
-        <p>This code will expire in 10 minutes.</p>
-      `
-    });
+    // Send email with formatted template
+    await sendEmailVerificationOTP(user.email, user.first_name || 'User', otp);
 
     await logEvent({
       event_type: 'auth.email.verification.sent',

@@ -62,6 +62,7 @@ export default function LoginPage() {
             if (!res.ok) {
                 const map: Record<string, string> = {
                     invalid_credentials: 'Wrong email or password. Please try again.',
+                    no_password_set: 'This account uses Google Sign-In. Please use "Continue with Google" button or sign in with Google first to set a password.',
                     account_disabled: 'Your account has been disabled. Contact support.',
                     too_many_requests: 'Too many attempts. Try again in 15 minutes.',
                 };

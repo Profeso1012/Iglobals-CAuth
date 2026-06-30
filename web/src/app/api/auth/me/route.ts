@@ -25,7 +25,10 @@ export async function GET(req: NextRequest) {
 
     // Return user without sensitive fields
     const { password_hash, ...userWithoutPassword } = user;
-    return NextResponse.json(userWithoutPassword);
+    return NextResponse.json({
+      ...userWithoutPassword,
+      has_password: !!password_hash // Include flag to indicate if password is set
+    });
   } catch (error) {
     console.error('Get user error:', error);
     return NextResponse.json(

@@ -11,8 +11,18 @@ export default function SecurityPage() {
   const [saving, setSaving] = useState(false);
   const [pwdSuccess, setPwdSuccess] = useState('');
   const [pwdError, setPwdError] = useState('');
+  const [hasPassword, setHasPassword] = useState(true); // Track if user has password set
 
   useEffect(() => {
+    // Check if user has a password set
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then(r => r.json())
+      .then(data => {
+        // Check has_password flag
+        setHasPassword(data.has_password !== false);
+      })
+      .catch(() => {});
+      
     fetch('/api/auth/sessions', { credentials: 'include' })
       .then(r => r.json())
       .then(data => { setSessions(data.sessions || []); setLoadingSessions(false); });
@@ -31,10 +41,15 @@ export default function SecurityPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        const map: Record<string, string> = { invalid_password: 'Current password is incorrect.' };
+        const map: Record<string, string> = { 
+          invalid_credentials: 'Current password is incorrect.',
+          no_password_set: 'No password is currently set. Use "*" as current password to set your first password.'
+        };
         setPwdError(map[data.error] || data.error_description || 'Failed.'); return;
       }
-      setPwdSuccess('Password changed successfully.'); setForm({ current_password: '', new_password: '', confirm: '' });
+      setPwdSuccess(data.message || 'Password changed successfully.');
+      setForm({ current_password: '', new_password: '', confirm: '' });
+      setHasPassword(true); // Now user has a password
       setTimeout(() => setPwdSuccess(''), 4000);
     } catch { setPwdError('Network error. Try again.'); }
     finally { setSaving(false); }
@@ -63,20 +78,29 @@ export default function SecurityPage() {
       <div className="section-card">
         <div className="section-header"><span className="section-title">Change password</span></div>
         <div className="section-body">
+          {!hasPassword && (
+            <div className="alert alert-info" style={{ marginBottom: '16px' }}>
+              <AlertCircle size={16} />
+              <span>
+                Signed up with Google? 
+                Enter <strong>*</strong> as your current password.
+              </span>
+            </div>
+          )}
           {pwdError && <div className="alert alert-error"><AlertCircle size={16} /><span>{pwdError}</span></div>}
           {pwdSuccess && <div className="alert alert-success"><CheckCircle size={16} /><span>{pwdSuccess}</span></div>}
           <form onSubmit={handleChangePassword}>
             {[
-              { id: 'current_password', label: 'Current password', key: 'current_password' },
-              { id: 'new_password',     label: 'New password',     key: 'new_password' },
-              { id: 'confirm',          label: 'Confirm password', key: 'confirm' },
-            ].map(({ id, label, key }) => (
+              { id: 'current_password', label: hasPassword ? 'Current password' : 'Current password (enter * for first-time)', key: 'current_password', placeholder: hasPassword ? '••••••••' : 'Enter * (asterisk)' },
+              { id: 'new_password',     label: 'New password',     key: 'new_password', placeholder: '••••••••' },
+              { id: 'confirm',          label: 'Confirm password', key: 'confirm', placeholder: '••••••••' },
+            ].map(({ id, label, key, placeholder }) => (
               <div className="form-group" key={id}>
                 <label className="form-label" htmlFor={id}>{label}</label>
                 <div className="input-wrapper">
                   <span className="input-icon"><Lock size={16} /></span>
                   <input id={id} type={showPwd ? 'text' : 'password'} className="form-input"
-                    placeholder="••••••••"
+                    placeholder={placeholder}
                     value={(form as any)[key]}
                     onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
                     disabled={saving} />

@@ -17,17 +17,37 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    console.log(`[login] Looking up user: ${email}`);
+    
     // Find user by email
     const user = await getUserByEmail(email);
     if (!user) {
+      console.log(`[login] User not found: ${email}`);
       return NextResponse.json(
         { error: 'invalid_credentials', error_description: 'Invalid email or password' },
         { status: 401 }
       );
     }
 
+    // Check if user signed up with Google (no password set)
+    if (!user.password_hash) {
+      console.log(`[login] User has no password hash (likely Google sign-up): ${email}`);
+      return NextResponse.json(
+        { 
+          error: 'no_password_set', 
+          error_description: 'This account was created using Google Sign-In. Please use "Continue with Google" or set a password in Security settings after signing in with Google.' 
+        },
+        { status: 401 }
+      );
+    }
+
+    console.log(`[login] User found, verifying password for: ${email}`);
+    
     // Verify password
     const isValid = await verifyPassword(password, user.password_hash);
+    
+    console.log(`[login] Password verification result: ${isValid} for ${email}`);
+    
     if (!isValid) {
       await logEvent({
         event_type: 'auth.login.failed',

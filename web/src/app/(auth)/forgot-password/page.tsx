@@ -20,7 +20,19 @@ export default function ForgotPasswordPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
-      if (!res.ok) { const d = await res.json(); setError(d.error_description || 'Failed.'); return; }
+      
+      if (!res.ok) { 
+        const d = await res.json(); 
+        
+        // Special handling for Google users
+        if (d.error === 'no_password_set') {
+          setError(d.error_description || 'This account uses Google Sign-In. Please sign in with Google instead.');
+        } else {
+          setError(d.error_description || 'Failed to send reset link.');
+        }
+        return; 
+      }
+      
       setSent(true);
     } catch { setError('Network error. Try again.'); }
     finally { setLoading(false); }
