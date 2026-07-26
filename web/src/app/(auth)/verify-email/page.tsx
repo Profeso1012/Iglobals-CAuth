@@ -92,8 +92,8 @@ export default function VerifyEmailPage() {
   }
 
   return (
-    <div className="page-center">
-      <div className="card animate-fade-in" style={{ textAlign: 'center' }}>
+    <div className="page-center" style={{ '--accent': 'var(--ig-green)', '--accent-2': 'var(--ig-yellow)' } as React.CSSProperties}>
+      <div className="card" style={{ textAlign: 'center' }}>
         <div className="auth-logo">
           <img src="/logo.png" alt="iGlobals" style={{ height: 40 }} />
         </div>

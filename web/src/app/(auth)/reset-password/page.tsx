@@ -47,7 +47,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="auth-screen">
+    <div className="auth-screen" style={{ '--auth-accent': 'var(--ig-red)', '--auth-accent-2': 'var(--ig-pink)' } as React.CSSProperties}>
       <div className="auth-card">
         <div className="auth-card-grid">
           {/* Left */}

@@ -1,6 +1,7 @@
 /* ============================================================
    iGlobals Consent Screen — standalone CSS (no globals.css)
-   Mirrors Google's OAuth consent UI.
+   Own original take: filled chip/list treatment + brand gradient
+   accent, not a literal copy of Google's consent UI.
    Light/dark via @media (prefers-color-scheme: dark).
    ============================================================ */
 
@@ -17,6 +18,8 @@
   --c-chip-bg:      transparent;
   --c-initial-bg:   #e8f0fe;
   --c-initial-text: #1a73e8;
+  --c-accent:       #34a853;
+  --c-accent-2:     #1a73e8;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -33,6 +36,8 @@
     --c-chip-bg:      transparent;
     --c-initial-bg:   #1d2a44;
     --c-initial-text: #8ab4f8;
+    --c-accent:       #81c995;
+    --c-accent-2:     #8ab4f8;
   }
 }
 
@@ -57,17 +62,37 @@ html, body {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: var(--c-bg);
+  background:
+    radial-gradient(680px 380px at 10% -10%, color-mix(in srgb, var(--c-accent) 12%, transparent), transparent),
+    radial-gradient(560px 340px at 100% 110%, color-mix(in srgb, var(--c-accent-2) 10%, transparent), transparent),
+    var(--c-bg);
 }
 
 /* ---- Card ---- */
 .cs-card {
   width: 100%;
-  max-width: 560px;           /* narrower than login — matches Google consent */
+  max-width: 540px;
   background: var(--c-card);
-  border-radius: 28px;
-  box-shadow: 0 2px 10px rgba(60,64,67,.18), 0 6px 30px rgba(60,64,67,.12);
-  overflow: hidden;           /* keeps header strip inside radius */
+  border: 1px solid var(--c-border);
+  border-radius: 20px;
+  box-shadow: 0 1px 2px rgba(20,20,30,.06), 0 18px 40px -12px rgba(20,20,30,.18);
+  overflow: hidden;
+  position: relative;
+  animation: csCardIn 0.45s cubic-bezier(.16,1,.3,1) both;
+}
+
+@keyframes csCardIn {
+  from { opacity: 0; transform: translateY(10px) scale(.99); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.cs-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--c-accent), var(--c-accent-2));
+  z-index: 1;
 }
 
 /* ---- Header strip: "Sign in with iGlobals" ---- */
@@ -75,10 +100,11 @@ html, body {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 16px 24px;
+  padding: 18px 24px 16px;
   border-bottom: 1px solid var(--c-border);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .01em;
   color: var(--c-muted);
 }
 
@@ -109,24 +135,25 @@ html, body {
 .cs-app-initial {
   width: 56px;
   height: 56px;
-  border-radius: 12px;
-  background: var(--c-initial-bg);
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--c-accent), var(--c-accent-2));
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 26px;
-  font-weight: 500;
-  color: var(--c-initial-text);
-  margin-bottom: 16px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 18px;
 }
 
 /* App name heading */
 .cs-app-name {
-  font-size: 24px;
-  font-weight: 400;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--c-text);
-  margin-bottom: 10px;
-  line-height: 1.25;
+  margin-bottom: 12px;
+  line-height: 1.3;
 }
 
 /* Logged-in account chip */
@@ -136,26 +163,23 @@ html, body {
   gap: 8px;
   border: 1px solid var(--c-border);
   border-radius: 9999px;
-  padding: 5px 12px 5px 6px;
+  padding: 5px 14px 5px 6px;
   margin-bottom: 28px;
+  background: color-mix(in srgb, var(--c-text) 3%, var(--c-card));
 }
 
 .cs-chip-avatar {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  background: #dadce0;
+  background: linear-gradient(135deg, var(--c-accent), var(--c-accent-2));
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 11px;
   font-weight: 700;
-  color: #3c4043;
+  color: #fff;
   flex-shrink: 0;
-}
-
-@media (prefers-color-scheme: dark) {
-  .cs-chip-avatar { background: #5f6368; color: #e8eaed; }
 }
 
 .cs-chip-text {
@@ -175,21 +199,25 @@ html, body {
   list-style: none;
   width: 100%;
   margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .cs-scope-item {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--c-border);
+  padding: 10px 12px;
+  border-radius: 10px;
   font-size: 14px;
+  transition: background 0.15s ease;
 }
 
-.cs-scope-item:last-child { border-bottom: none; }
+.cs-scope-item:hover { background: color-mix(in srgb, var(--c-text) 4%, transparent); }
 
 .cs-scope-icon {
-  color: var(--c-green);
+  color: var(--c-accent);
   margin-top: 1px;
   flex-shrink: 0;
 }
@@ -240,44 +268,45 @@ html, body {
 
 .cs-btn-ghost {
   background: none;
-  border: none;
-  color: var(--c-blue);
+  border: 1.5px solid transparent;
+  color: var(--c-muted);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
   padding: 10px 20px;
-  border-radius: 9999px;
-  transition: background 0.15s;
+  border-radius: 12px;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .cs-btn-ghost:hover:not(:disabled) {
-  background: rgba(26,115,232,.08);
-}
-
-@media (prefers-color-scheme: dark) {
-  .cs-btn-ghost:hover:not(:disabled) {
-    background: rgba(138,180,248,.1);
-  }
+  background: color-mix(in srgb, var(--c-text) 6%, transparent);
+  border-color: var(--c-border);
 }
 
 .cs-btn-primary {
-  background: var(--c-blue);
+  background: linear-gradient(135deg, var(--c-accent), color-mix(in srgb, var(--c-accent) 78%, black));
   color: #fff;
   border: none;
-  border-radius: 9999px;
+  border-radius: 12px;
   padding: 10px 24px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--c-accent) 60%, transparent);
 }
 
-.cs-btn-primary:hover:not(:disabled) { background: var(--c-blue-hover); }
+.cs-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
 .cs-btn-primary:disabled, .cs-btn-ghost:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* ---- Spinner (loading state) ---- */
@@ -294,8 +323,8 @@ html, body {
 .cs-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid rgba(26,115,232,.25);
-  border-top-color: var(--c-blue);
+  border: 3px solid color-mix(in srgb, var(--c-accent) 25%, transparent);
+  border-top-color: var(--c-accent);
   border-radius: 50%;
   animation: cs-spin 0.75s linear infinite;
 }
@@ -331,7 +360,8 @@ html, body {
 }
 
 .cs-footer-links a:hover, .cs-footer-lang:hover {
-  background: rgba(60,64,67,.08);
+  background: color-mix(in srgb, var(--c-text) 8%, transparent);
+  color: var(--c-text);
 }
 
 /* ---- Mobile ---- */

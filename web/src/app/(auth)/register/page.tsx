@@ -109,7 +109,7 @@ export default function RegisterPage() {
     };
 
     return (
-        <div className="auth-screen">
+        <div className="auth-screen" style={{ '--auth-accent': 'var(--ig-green)', '--auth-accent-2': 'var(--ig-blue)' } as React.CSSProperties}>
             {/* Step: Name */}
             {step === 'name' && (
                 <>

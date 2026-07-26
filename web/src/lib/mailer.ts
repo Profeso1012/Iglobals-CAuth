@@ -163,6 +163,18 @@ export async function sendPasswordResetOTP(email: string, firstName: string, otp
   return sendEmail(email, 'Reset your password', html);
 }
 
+// Send admin panel sign-in OTP (second factor after the shared passphrase)
+export async function sendAdminLoginOTP(email: string, otp: string): Promise<boolean> {
+  const html = simpleLayout(`
+    <p>A sign-in to the iGlobals admin panel was requested for this email address.</p>
+    <p>Use the code below to complete sign-in:</p>
+    ${otpBlock(otp)}
+    <p style="color:#666;font-size:14px;">This code expires in <strong>10 minutes</strong>. If you didn't request this, you can safely ignore this email.</p>
+  `);
+
+  return sendEmail(email, 'Your iGlobals admin sign-in code', html);
+}
+
 // Legacy compatibility
 export async function sendOTP(email: string, otp: string) {
   console.log(`[MAILER] Sending OTP ${otp} to ${email}`);

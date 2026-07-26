@@ -62,3 +62,41 @@ export async function setPassword(userId: string, hash: string) {
 export async function setActive(userId: string, bool: boolean) {
   await query(`UPDATE ica.users SET is_active = $2, updated_at = NOW() WHERE id = $1`, [userId, bool]);
 }
+
+export async function listUsers({ search, status, verified, page = 1, limit = 20 }: {
+  search?: string;
+  status?: 'active' | 'suspended';
+  verified?: 'email' | 'email_pending' | 'phone' | 'phone_pending';
+  page?: number;
+  limit?: number;
+}) {
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+  let idx = 1;
+
+  if (search) {
+    conditions.push(`(email ILIKE $${idx} OR first_name ILIKE $${idx} OR last_name ILIKE $${idx} OR phone ILIKE $${idx})`);
+    params.push(`%${search}%`);
+    idx++;
+  }
+  if (status === 'active') conditions.push('is_active = true');
+  if (status === 'suspended') conditions.push('is_active = false');
+  if (verified === 'email') conditions.push('email_verified = true');
+  if (verified === 'email_pending') conditions.push('email_verified = false');
+  if (verified === 'phone') conditions.push('phone_verified = true');
+  if (verified === 'phone_pending') conditions.push('phone_verified = false');
+
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const countResult = await query(`SELECT COUNT(*)::int AS count FROM ica.users ${where}`, params);
+  const total = countResult.rows[0].count;
+
+  const offset = (Math.max(page, 1) - 1) * limit;
+  const result = await query(
+    `SELECT id, email, email_verified, phone, phone_verified, auth_provider, first_name, last_name, is_active, created_at, updated_at
+     FROM ica.users ${where} ORDER BY created_at DESC LIMIT $${idx} OFFSET $${idx + 1}`,
+    [...params, limit, offset]
+  );
+
+  return { rows: result.rows, total };
+}

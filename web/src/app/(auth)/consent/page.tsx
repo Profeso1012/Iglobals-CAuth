@@ -164,7 +164,7 @@ export default function ConsentPage() {
           <p className="cs-hint">
             Make sure you trust <strong>{client?.name}</strong>. You may be sharing
             sensitive info with this site or app. You can always see or remove access
-            in your <a href="#" className="cs-link">I-con Account</a>.
+            in your <a href="/apps" className="cs-link">I-con Account</a>.
           </p>
 
           {error && <p className="cs-error">{error}</p>}
@@ -188,9 +188,9 @@ export default function ConsentPage() {
       <footer className="cs-footer">
         <button className="cs-footer-lang">English (United States) ▾</button>
         <nav className="cs-footer-links">
-          <a href="#">Help</a>
-          <a href="#">Privacy</a>
-          <a href="#">Terms</a>
+          <a href="/help">Help</a>
+          <a href="/privacy">Privacy</a>
+          <a href="/terms">Terms</a>
         </nav>
       </footer>
 

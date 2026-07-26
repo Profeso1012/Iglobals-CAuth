@@ -44,9 +44,9 @@ export const Footer = () => (
             <ChevronDownIcon />
         </div>
         <div className="auth-footer-links">
-            <Link href="#">Help</Link>
-            <Link href="#">Privacy</Link>
-            <Link href="#">Terms</Link>
+            <Link href="/help">Help</Link>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
         </div>
     </div>
 );

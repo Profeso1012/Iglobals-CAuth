@@ -39,7 +39,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="auth-screen">
+    <div className="auth-screen" style={{ '--auth-accent': 'var(--ig-yellow)', '--auth-accent-2': 'var(--ig-red)' } as React.CSSProperties}>
       <div className="auth-card">
         <div className="auth-card-grid">
           {/* Left */}

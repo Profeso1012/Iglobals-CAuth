@@ -42,3 +42,8 @@ export async function listClients() {
   const result = await query(`SELECT * FROM ica.oauth_clients WHERE is_active = true`);
   return result.rows;
 }
+
+export async function listAllClients() {
+  const result = await query(`SELECT * FROM ica.oauth_clients ORDER BY created_at DESC`);
+  return result.rows;
+}
