@@ -570,7 +570,7 @@ a:hover { text-decoration: underline; }
 .topbar-left { display: flex; align-items: center; gap: var(--space-md); }
 .topbar-right { display: flex; align-items: center; gap: var(--space-sm); }
 
-.page-content { padding: var(--space-xl); max-width: 900px; }
+.page-content { padding: var(--space-xl); max-width: 900px; width: 100%; margin: 0 auto; }
 
 .page-header { margin-bottom: var(--space-xl); }
 
