@@ -1,24 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-
-/* ---- iGlobals logo (inline SVG so no import headaches) ---- */
-function IGlobalsLogo({ className }: { className?: string }) {
-  return (
-    <svg className={className} height="22" viewBox="0 0 120 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <text x="0" y="24" fontFamily="Google Sans, Roboto, sans-serif" fontSize="22" fontWeight="700"
-        fill="url(#ig-grad)">iGlobals</text>
-      <defs>
-        <linearGradient id="ig-grad" x1="0" y1="0" x2="120" y2="0" gradientUnits="userSpaceOnUse">
-          <stop offset="0%"   stopColor="#4285F4"/>
-          <stop offset="33%"  stopColor="#34A853"/>
-          <stop offset="66%"  stopColor="#FBBC04"/>
-          <stop offset="100%" stopColor="#EA4335"/>
-        </linearGradient>
-      </defs>
-    </svg>
-  );
-}
+import { IGlobalsLogo } from '@/components/PenpotAuth';
 
 function ShieldCheckIcon() {
   return (
@@ -44,6 +27,7 @@ export default function ConsentPage() {
   const [loading, setLoading]           = useState(true);
   const [deciding, setDeciding]         = useState(false);
   const [error, setError]               = useState('');
+  const [logoError, setLogoError]       = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined')
@@ -109,26 +93,30 @@ export default function ConsentPage() {
   );
 
   const appInitial = (client?.name?.charAt(0) ?? '?').toUpperCase();
+  const showLogo = client?.logo_url && !logoError;
 
   return (
-    <div className="cs-screen">
-
-      <div className="cs-card">
-
-        {/* ── Header strip ── */}
-        <div className="cs-header">
-          <IGlobalsLogo className="cs-header-logo" />
-          <span>Sign in with iGlobals</span>
-        </div>
-
-        {/* ── Body ── */}
-        <div className="cs-body">
-
-          {/* App logo / initial */}
-          {client?.logo_url
-            ? <img src={client.logo_url} alt={client.name} className="cs-app-logo" />
-            : <div className="cs-app-initial">{appInitial}</div>
-          }
+    <>
+      <IGlobalsLogo />
+      
+      <div className="auth-container">
+        <div className="auth-centered" style={{ maxWidth: '540px' }}>
+          
+          {/* App logo or initial */}
+          {showLogo ? (
+            <img 
+              src={client.logo_url} 
+              alt={client.name} 
+              className="cs-app-logo"
+              onError={() => {
+                console.error('[Consent] Logo failed to load:', client.logo_url);
+                setLogoError(true);
+              }}
+              onLoad={() => console.log('[Consent] Logo loaded successfully')}
+            />
+          ) : (
+            <div className="cs-app-initial">{appInitial}</div>
+          )}
 
           {/* App name */}
           <h1 className="cs-app-name">{client?.name ?? clientId}</h1>
@@ -167,7 +155,7 @@ export default function ConsentPage() {
             in your <a href="/apps" className="cs-link">I-con Account</a>.
           </p>
 
-          {error && <p className="cs-error">{error}</p>}
+          {error && <p className="auth-alert auth-alert-error">{error}</p>}
 
           {/* Actions */}
           <div className="cs-actions">
@@ -181,19 +169,8 @@ export default function ConsentPage() {
             </button>
           </div>
 
-        </div>{/* /cs-body */}
-      </div>{/* /cs-card */}
-
-      {/* Footer */}
-      <footer className="cs-footer">
-        <button className="cs-footer-lang">English (United States) ▾</button>
-        <nav className="cs-footer-links">
-          <a href="/help">Help</a>
-          <a href="/privacy">Privacy</a>
-          <a href="/terms">Terms</a>
-        </nav>
-      </footer>
-
-    </div>
+        </div>
+      </div>
+    </>
   );
 }

@@ -1,8 +1,17 @@
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      {/* iGlobals rainbow top bar */}
-      <div className="ig-gradient-bar" style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999 }} />
+      {/* Dark/light mode detection */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function() {
+              const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+              document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+            })();
+          `,
+        }}
+      />
       {children}
     </>
   );

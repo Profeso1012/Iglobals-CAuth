@@ -1,10 +1,32 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import './(auth)/auth-styles.css';
 
 export const metadata: Metadata = {
-  title: 'iGlobals Identity — Become an I-con',
-  description: 'iGlobals Central Authentication — one identity across all iGlobals products.',
-  icons: { icon: '/favicon.ico' },
+  title: 'iGlobals Central — Secure Identity Platform',
+  description: 'One identity across all iGlobals services. Secure, fast, and reliable authentication powered by iGlobals.',
+  icons: { 
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
+  openGraph: {
+    title: 'iGlobals Central Authentication',
+    description: 'Secure identity platform connecting all iGlobals services',
+    siteName: 'iGlobals Central',
+    images: [{
+      url: '/logo.png',
+      width: 512,
+      height: 512,
+      alt: 'iGlobals Logo',
+    }],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'iGlobals Central Authentication',
+    description: 'Secure identity platform for all iGlobals services',
+    images: ['/logo.png'],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

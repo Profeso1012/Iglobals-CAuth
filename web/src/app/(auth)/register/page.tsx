@@ -2,233 +2,171 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { BackButton, Footer, IGlobalsLogo, InputField, GoogleAuthButton } from '@/components/GoogleAuthUI';
-
-type RegisterStep = 'name' | 'emailPhone' | 'password';
+import { 
+  IGlobalsLogo, 
+  AuthTabs, 
+  SocialButtons, 
+  Divider, 
+  InputField, 
+  Button, 
+  Checkbox
+} from '@/components/PenpotAuth';
 
 export default function RegisterPage() {
-    const router = useRouter();
-    const [searchParams, setSearchParams] = useState<URLSearchParams | null>(null);
+  const router = useRouter();
+  const [searchParams, setSearchParams] = useState<URLSearchParams | null>(null);
 
-    useEffect(() => {
-        if (typeof window !== 'undefined') setSearchParams(new URLSearchParams(window.location.search));
-    }, []);
+  useEffect(() => {
+    if (typeof window !== 'undefined') setSearchParams(new URLSearchParams(window.location.search));
+  }, []);
 
-    const [step, setStep] = useState<RegisterStep>('name');
-    const [firstName, setFirstName] = useState('');
-    const [lastName, setLastName] = useState('');
-    const [email, setEmail] = useState('');
-    const [phone, setPhone] = useState('');
-    const [password, setPassword] = useState('');
-    const [confirm, setConfirm] = useState('');
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [agreeUpdates, setAgreeUpdates] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-    const oauthContext = searchParams?.get('client_id') ? {
-        client_id: searchParams.get('client_id'),
-        redirect_uri: searchParams.get('redirect_uri'),
-        state: searchParams.get('state'),
-        code_challenge: searchParams.get('code_challenge'),
-        scopes: searchParams.get('scope')?.split(' '),
-    } : undefined;
+  const oauthContext = searchParams?.get('client_id') ? {
+    client_id: searchParams.get('client_id'),
+    redirect_uri: searchParams.get('redirect_uri'),
+    state: searchParams.get('state'),
+    code_challenge: searchParams.get('code_challenge'),
+    scopes: searchParams.get('scope')?.split(' '),
+  } : undefined;
 
-    const handleNextName = () => {
-        if (!firstName.trim() || !lastName.trim()) {
-            setError('First name and last name are required');
-            return;
+  const handleRegister = async () => {
+    if (!fullName.trim()) {
+      setError('Full name is required');
+      return;
+    }
+    if (!email.trim() || !email.includes('@')) {
+      setError('Enter a valid email address');
+      return;
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
+    if (!agreeTerms) {
+      setError('You must agree to the terms of service');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    // Parse full name into first and last
+    const nameParts = fullName.trim().split(' ');
+    const firstName = nameParts[0];
+    const lastName = nameParts.slice(1).join(' ') || nameParts[0];
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          email,
+          password,
+          first_name: firstName,
+          last_name: lastName,
+          oauth_context: oauthContext,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.fields) {
+          setError(Object.values(data.fields)[0] as string);
+          return;
         }
-        setError('');
-        setStep('emailPhone');
-    };
+        const errorMap: Record<string, string> = {
+          email_taken: 'An account with this email already exists.',
+        };
+        setError(errorMap[data.error] || data.error_description || 'Registration failed.');
+        return;
+      }
 
-    const handleNextEmail = () => {
-        if (!email.trim() || !email.includes('@')) {
-            setError('Enter a valid email address');
-            return;
-        }
-        setError('');
-        setStep('password');
-    };
+      if (data.redirect_to?.startsWith('http')) {
+        sessionStorage.setItem('post_verify_redirect', data.redirect_to);
+      }
+      router.push('/verify-email');
+    } catch {
+      setError('Network error. Check your connection.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const handleBackToLogin = () => {
-        const qs = searchParams?.toString();
-        router.push(`/login${qs ? '?' + qs : ''}`);
-    };
+  return (
+    <>
+      <IGlobalsLogo />
+      <AuthTabs 
+        active="register" 
+        onSwitch={(tab) => tab === 'login' && router.push(`/login${searchParams ? '?' + searchParams.toString() : ''}`)} 
+      />
 
-    const handleRegister = async () => {
-        if (password.length < 8) {
-            setError('Password must be at least 8 characters');
-            return;
-        }
-        if (password !== confirm) {
-            setError('Passwords do not match');
-            return;
-        }
+      <div className="auth-container">
+        <div className="auth-centered">
+          <h1 className="auth-title">Create an account</h1>
 
-        setLoading(true);
-        setError('');
+          <SocialButtons oauthContext={oauthContext} />
+          
+          <Divider />
 
-        try {
-            const res = await fetch('/api/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({
-                    email,
-                    password,
-                    first_name: firstName,
-                    last_name: lastName,
-                    phone: phone || undefined,
-                    oauth_context: oauthContext,
-                }),
-            });
+          <InputField
+            label="Full Name"
+            type="text"
+            value={fullName}
+            onChange={e => { setFullName(e.target.value); setError(''); }}
+            placeholder="Full Name"
+            autoFocus
+            name="name"
+          />
 
-            const data = await res.json();
+          <InputField
+            label="Email"
+            type="email"
+            value={email}
+            onChange={e => { setEmail(e.target.value); setError(''); }}
+            placeholder="Email address"
+            autoFocus
+            name="email"
+          />
 
-            if (!res.ok) {
-                if (data.fields) {
-                    setError(Object.values(data.fields)[0] as string);
-                    return;
-                }
-                const map: Record<string, string> = {
-                    email_taken: 'An account with this email already exists.',
-                };
-                setError(map[data.error] || data.error_description || 'Registration failed.');
-                return;
-            }
+          <InputField
+            label="Password"
+            type="password"
+            value={password}
+            onChange={e => { setPassword(e.target.value); setError(''); }}
+            placeholder="Password"
+            name="new-password"
+          />
 
-            if (data.redirect_to?.startsWith('http')) {
-                sessionStorage.setItem('post_verify_redirect', data.redirect_to);
-            }
-            router.push('/verify-email');
-        } catch {
-            setError('Network error. Check your connection and try again.');
-        } finally {
-            setLoading(false);
-        }
-    };
+          <p className="auth-hint">At least 8 characters</p>
 
-    return (
-        <div className="auth-screen" style={{ '--auth-accent': 'var(--ig-green)', '--auth-accent-2': 'var(--ig-blue)' } as React.CSSProperties}>
-            {/* Step: Name */}
-            {step === 'name' && (
-                <>
-                    <BackButton onClick={handleBackToLogin} />
-                    <div className="auth-card">
-                        <div className="auth-card-grid">
-                            <div className="auth-left">
-                                <IGlobalsLogo />
-                                <h1 className="auth-title">Create an I-con account</h1>
-                                <p className="auth-subtitle">Enter your name</p>
-                                <GoogleAuthButton className="desktop-only-btn" oauthContext={oauthContext} />
-                            </div>
-                            <div className="auth-right">
-                                <InputField
-                                    label="First name"
-                                    value={firstName}
-                                    onChange={e => { setFirstName(e.target.value); setError(''); }}
-                                    autoFocus
-                                />
-                                <InputField
-                                    label="Last name"
-                                    value={lastName}
-                                    onChange={e => { setLastName(e.target.value); setError(''); }}
-                                />
-                                {error && <p className="auth-error-msg">{error}</p>}
-                                <div className="auth-actions-end" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <div className="mobile-only-btn">
-                                        <GoogleAuthButton oauthContext={oauthContext} />
-                                    </div>
-                                    <button type="button" onClick={handleNextName} className="auth-btn-primary">
-                                        Next
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </>
-            )}
+          <Checkbox checked={agreeTerms} onChange={setAgreeTerms}>
+            I agree to the <a href="/terms" className="auth-link">terms of service</a> and <a href="/privacy" className="auth-link">privacy policy</a>.
+          </Checkbox>
 
-            {/* Step: Email & Phone */}
-            {step === 'emailPhone' && (
-                <>
-                    <BackButton onClick={() => setStep('name')} />
-                    <div className="auth-card">
-                        <div className="auth-card-grid">
-                            <div className="auth-left">
-                                <IGlobalsLogo />
-                                <h1 className="auth-title">Basic information</h1>
-                                <p className="auth-subtitle">Enter your email and optional phone number</p>
-                            </div>
-                            <div className="auth-right">
-                                <InputField
-                                    label="Email address"
-                                    type="email"
-                                    value={email}
-                                    onChange={e => { setEmail(e.target.value); setError(''); }}
-                                    autoFocus
-                                />
-                                <InputField
-                                    label="Phone number (optional)"
-                                    type="tel"
-                                    value={phone}
-                                    onChange={e => setPhone(e.target.value)}
-                                />
-                                {error && <p className="auth-error-msg">{error}</p>}
-                                <div className="auth-actions-end">
-                                    <button type="button" onClick={handleNextEmail} className="auth-btn-primary">
-                                        Next
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </>
-            )}
+          <Checkbox checked={agreeUpdates} onChange={setAgreeUpdates}>
+            Send me product updates (new features, releases, fixes...).
+          </Checkbox>
 
-            {/* Step: Password */}
-            {step === 'password' && (
-                <>
-                    <BackButton onClick={() => setStep('emailPhone')} />
-                    <div className="auth-card">
-                        <div className="auth-card-grid">
-                            <div className="auth-left">
-                                <IGlobalsLogo />
-                                <h1 className="auth-title">Create a strong password</h1>
-                                <p className="auth-subtitle">Mix of letters, numbers and symbols</p>
-                            </div>
-                            <div className="auth-right">
-                                <InputField
-                                    label="Password"
-                                    type="password"
-                                    value={password}
-                                    onChange={e => { setPassword(e.target.value); setError(''); }}
-                                    autoFocus
-                                />
-                                <InputField
-                                    label="Confirm password"
-                                    type="password"
-                                    value={confirm}
-                                    onChange={e => { setConfirm(e.target.value); setError(''); }}
-                                />
-                                {error && <p className="auth-error-msg">{error}</p>}
-                                <div className="auth-actions-end">
-                                    <button
-                                        type="button"
-                                        onClick={handleRegister}
-                                        disabled={loading}
-                                        className="auth-btn-primary"
-                                    >
-                                        {loading ? 'Creating…' : 'Create Account'}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </>
-            )}
+          {error && <p className="auth-alert auth-alert-error">{error}</p>}
 
-            <Footer />
+          <Button onClick={handleRegister} disabled={loading}>
+            {loading ? 'Creating…' : 'Create an account'}
+          </Button>
+
+          <p className="auth-text-center">
+            Already have an account? <a href="/login" className="auth-link">Login here.</a>
+          </p>
         </div>
-    );
+      </div>
+    </>
+  );
 }

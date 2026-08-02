@@ -2,139 +2,130 @@
 
 import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Lock, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
-import { Footer, IGlobalsLogo, InputField } from '@/components/GoogleAuthUI';
+import { 
+  IGlobalsLogo, 
+  InputField, 
+  Button, 
+  LockIcon 
+} from '@/components/PenpotAuth';
 
 export default function ResetPasswordPage() {
   const [searchParams, setSearchParams] = useState<URLSearchParams | null>(null);
   const router = useRouter();
-  const token = searchParams?.get('token') || '';
 
   useEffect(() => {
     if (typeof window !== 'undefined') setSearchParams(new URLSearchParams(window.location.search));
   }, []);
 
+  const token = searchParams?.get('token') || '';
+
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
-  const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (password !== confirm) { setError('Passwords do not match.'); return; }
-    if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
-    if (!token) { setError('Invalid or missing reset token.'); return; }
-    setLoading(true); setError('');
+    
+    if (password !== confirm) { 
+      setError('Passwords do not match.'); 
+      return; 
+    }
+    if (password.length < 8) { 
+      setError('Password must be at least 8 characters.'); 
+      return; 
+    }
+    if (!token) { 
+      setError('Invalid or missing reset token.'); 
+      return; 
+    }
+    
+    setLoading(true); 
+    setError('');
+    
     try {
       const res = await fetch('/api/auth/reset-password', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, new_password: password }),
       });
+      
       const data = await res.json();
+      
       if (!res.ok) {
-        const map: Record<string, string> = {
+        const errorMap: Record<string, string> = {
           invalid_token: 'This reset link is invalid or has expired.',
           token_used: 'This link has already been used.',
         };
-        setError(map[data.error] || data.error_description || 'Reset failed.'); return;
+        setError(errorMap[data.error] || data.error_description || 'Reset failed.'); 
+        return;
       }
+      
       setSuccess(true);
       setTimeout(() => router.push('/login'), 2000);
-    } catch { setError('Network error. Try again.'); }
-    finally { setLoading(false); }
+    } catch { 
+      setError('Network error. Try again.'); 
+    } finally { 
+      setLoading(false); 
+    }
   }
 
   return (
-    <div className="auth-screen" style={{ '--auth-accent': 'var(--ig-red)', '--auth-accent-2': 'var(--ig-pink)' } as React.CSSProperties}>
-      <div className="auth-card">
-        <div className="auth-card-grid">
-          {/* Left */}
-          <div className="auth-left">
-            <IGlobalsLogo />
-            <h1 className="auth-title">New password</h1>
-            <p className="auth-subtitle">Choose a strong password for your I-con account.</p>
+    <>
+      <IGlobalsLogo />
+
+      <div className="auth-container">
+        <div className="auth-centered">
+          <div className="auth-forgot-icon">
+            <LockIcon />
           </div>
 
-          {/* Right */}
-          <div className="auth-right">
-            {success ? (
-              <div className="alert alert-success">
-                <CheckCircle size={16} />
-                <span>Password reset successfully! Redirecting to sign in…</span>
-              </div>
-            ) : (
-              <>
-                {error && (
-                  <div className="alert alert-error">
-                    <AlertCircle size={16} />
-                    <span>{error}</span>
-                  </div>
-                )}
-                
-                <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                  <div className="auth-field">
-                    <div className={`auth-field-inner ${password ? 'has-value' : ''}`}>
-                      <label className="auth-field-label">New password</label>
-                      <input
-                        id="new-password"
-                        type={showPwd ? 'text' : 'password'}
-                        className="auth-field-input"
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                        autoComplete="new-password"
-                        disabled={loading}
-                      />
-                      <button
-                        type="button"
-                        className="auth-field-toggle"
-                        onClick={() => setShowPwd(p => !p)}
-                      >
-                        {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                    <p className="auth-field-error" style={{ fontSize: '12px', color: 'var(--auth-text-muted)', marginTop: '4px' }}>
-                      Min. 8 characters
-                    </p>
-                  </div>
+          <h1 className="auth-title">Create new password</h1>
+          <p className="auth-subtitle">Choose a strong password with a mix of letters, numbers and symbols.</p>
 
-                  <div className="auth-field">
-                    <div className={`auth-field-inner ${confirm ? 'has-value' : ''}`}>
-                      <label className="auth-field-label">Confirm password</label>
-                      <input
-                        id="new-confirm"
-                        type={showPwd ? 'text' : 'password'}
-                        className="auth-field-input"
-                        value={confirm}
-                        onChange={e => setConfirm(e.target.value)}
-                        autoComplete="new-password"
-                        disabled={loading}
-                      />
-                    </div>
-                  </div>
+          {success ? (
+            <div className="auth-alert auth-alert-success">
+              <span>Password reset successfully! Redirecting to sign in…</span>
+            </div>
+          ) : (
+            <>
+              <form onSubmit={handleSubmit} noValidate style={{ width: '100%' }}>
+                <InputField
+                  label="New Password"
+                  type="password"
+                  value={password}
+                  onChange={e => { setPassword(e.target.value); setError(''); }}
+                  placeholder="New password"
+                  autoFocus
+                  name="new-password"
+                />
 
-                  <div className="auth-actions-end">
-                    <button
-                      id="btn-reset-password"
-                      type="submit"
-                      className="auth-btn-primary"
-                      disabled={loading || !password || !confirm || !token}
-                    >
-                      {loading ? 'Resetting…' : 'Reset password'}
-                    </button>
-                  </div>
-                </form>
+                <p className="auth-hint">At least 8 characters</p>
 
-                <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '14px' }}>
-                  <a href="/login" className="auth-link">Back to sign in</a>
-                </p>
-              </>
-            )}
-          </div>
+                <InputField
+                  label="Confirm Password"
+                  type="password"
+                  value={confirm}
+                  onChange={e => { setConfirm(e.target.value); setError(''); }}
+                  placeholder="Confirm password"
+                  name="new-password"
+                />
+
+                {error && <p className="auth-alert auth-alert-error">{error}</p>}
+
+                <Button type="submit" disabled={loading || !password || !confirm || !token}>
+                  {loading ? 'Resetting…' : 'Reset password'}
+                </Button>
+              </form>
+
+              <p className="auth-text-center">
+                <a href="/login" className="auth-link">Back to sign in</a>
+              </p>
+            </>
+          )}
         </div>
       </div>
-      <Footer />
-    </div>
+    </>
   );
 }

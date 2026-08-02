@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Penpot — Authentication</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #18181b;
+    color: #e4e4e7;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ── Logo ── */
+  .logo {
+    position: fixed;
+    top: 24px;
+    left: 28px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 100;
+    text-decoration: none;
+  }
+  .logo svg { flex-shrink: 0; display: block; }
+  .logo span {
+    font-size: 20px;
+    font-weight: 500;
+    color: #fafafa;
+    letter-spacing: -0.3px;
+  }
+
+  /* ── Tabs ── */
+  .tabs {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 4px;
+    background: #27272a;
+    border-radius: 10px;
+    padding: 4px;
+    z-index: 100;
+  }
+  .tab {
+    padding: 8px 20px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: #a1a1aa;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+  }
+  .tab:hover { color: #e4e4e7; }
+  .tab.active {
+    background: #3f3f46;
+    color: #fafafa;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+
+  /* ── Pages ── */
+  .page {
+    display: none;
+    width: 100%;
+    min-height: 100vh;
+  }
+  .page.active { display: flex; }
+
+  /* ── Split layout (login) ── */
+  .split {
+    display: flex;
+    width: 100%;
+    min-height: 100vh;
+  }
+  .split-art {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .split-form {
+    width: 460px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 40px 48px;
+  }
+
+  /* ── Centered layout (register, name, forgot) ── */
+  .centered {
+    width: 100%;
+    max-width: 420px;
+    margin: auto;
+    padding: 100px 24px 60px;
+  }
+
+  /* ── Typography ── */
+  .h1 {
+    font-size: 26px;
+    font-weight: 400;
+    color: #fafafa;
+    letter-spacing: -0.3px;
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+  .subtitle {
+    color: #a1a1aa;
+    font-size: 14px;
+    line-height: 1.55;
+    margin-bottom: 28px;
+  }
+
+  /* ── Social buttons ── */
+  .social-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .social-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 9px 0;
+    background: #27272a;
+    border: 1px solid #3f3f46;
+    border-radius: 8px;
+    color: #e4e4e7;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: inherit;
+  }
+  .social-btn:hover {
+    background: #3f3f46;
+    border-color: #52525b;
+  }
+
+  /* ── Divider ── */
+  .divider {
+    height: 1px;
+    background: #3f3f46;
+    margin-bottom: 24px;
+    position: relative;
+  }
+  .divider-text {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: #18181b;
+    padding: 0 12px;
+    color: #71717a;
+    font-size: 12px;
+  }
+
+  /* ── Form fields ── */
+  .label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: #a1a1aa;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 8px;
+  }
+  .input {
+    width: 100%;
+    padding: 11px 14px;
+    background: #27272a;
+    border: 1px solid #3f3f46;
+    border-radius: 8px;
+    color: #fafafa;
+    font-size: 14px;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .input::placeholder { color: #71717a; }
+  .input:focus {
+    border-color: #14b8a6;
+    box-shadow: 0 0 0 3px rgba(20,184,166,0.08);
+  }
+  .input-wrap {
+    position: relative;
+  }
+  .input-wrap .input { padding-right: 40px; }
+  .eye-btn {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #71717a;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .eye-btn:hover { color: #a1a1aa; }
+  .hint {
+    color: #71717a;
+    font-size: 12px;
+    margin: 4px 0 20px;
+  }
+
+  /* ── Checkbox ── */
+  .check {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 16px;
+    cursor: pointer;
+  }
+  .check input {
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    accent-color: #14b8a6;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .check span {
+    font-size: 14px;
+    color: #a1a1aa;
+    line-height: 1.45;
+  }
+  .check a, .link {
+    color: #2dd4bf;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .check a:hover, .link:hover { text-decoration: underline; }
+
+  /* ── Buttons ── */
+  .btn-primary {
+    width: 100%;
+    padding: 12px;
+    background: #2d3d3d;
+    border: 1px solid #3d5252;
+    border-radius: 8px;
+    color: #889999;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    margin-bottom: 20px;
+  }
+  .btn-primary:hover {
+    background: #354545;
+    border-color: #4a6060;
+  }
+  .btn-secondary {
+    width: 100%;
+    padding: 12px;
+    background: #27272a;
+    border: 1px solid #3f3f46;
+    border-radius: 8px;
+    color: #a1a1aa;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .btn-secondary:hover {
+    background: #3f3f46;
+    color: #e4e4e7;
+  }
+
+  /* ── Text helpers ── */
+  .text-center {
+    text-align: center;
+    color: #a1a1aa;
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+  .text-right {
+    text-align: right;
+    margin-bottom: 20px;
+  }
+  .footer-links {
+    text-align: center;
+    margin-top: 8px;
+    color: #a1a1aa;
+    font-size: 14px;
+  }
+  .footer-links a {
+    color: #2dd4bf;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .footer-links a:hover { text-decoration: underline; }
+
+  /* ── Forgot password specific ── */
+  .forgot-icon {
+    width: 48px;
+    height: 48px;
+    background: #27272a;
+    border: 1px solid #3f3f46;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    color: #a1a1aa;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .split-art { display: none; }
+    .split-form { width: 100%; max-width: 420px; margin: auto; padding: 100px 24px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     LOGO
+     ═══════════════════════════════════════ -->
+<a href="#" class="logo" onclick="go('login'); return false;">
+  <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+    <rect x="3" y="3" width="11" height="11" rx="2" stroke="white" stroke-width="1.5" fill="none"/>
+    <rect x="18" y="3" width="11" height="11" rx="2" stroke="white" stroke-width="1.5" fill="none"/>
+    <rect x="3" y="18" width="11" height="11" rx="2" stroke="white" stroke-width="1.5" fill="none"/>
+    <rect x="18" y="18" width="11" height="11" rx="2" stroke="white" stroke-width="1.5" fill="none"/>
+    <circle cx="23.5" cy="23.5" r="2.5" fill="white"/>
+    <path d="M6 6l4 4M6 10l4-4" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
+  </svg>
+  <span>penpot</span>
+</a>
+
+<!-- ═══════════════════════════════════════
+     TABS
+     ═══════════════════════════════════════ -->
+<div class="tabs">
+  <button class="tab" id="tab-login" onclick="go('login')">Sign In</button>
+  <button class="tab active" id="tab-register" onclick="go('register')">Sign Up</button>
+</div>
+
+<!-- ═══════════════════════════════════════
+     PAGE: LOGIN
+     ═══════════════════════════════════════ -->
+<div class="page active" id="page-login">
+  <div class="split">
+    <!-- Illustration -->
+    <div class="split-art">
+      <svg width="420" height="420" viewBox="0 0 420 420" fill="none" style="max-width:100%;">
+        <defs>
+          <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0%" stop-color="#a855f7"/>
+            <stop offset="100%" stop-color="#18181b" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#c084fc"/>
+            <stop offset="100%" stop-color="#a855f7"/>
+          </linearGradient>
+          <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#2dd4bf"/>
+            <stop offset="100%" stop-color="#0d9488"/>
+          </linearGradient>
+          <linearGradient id="g3" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#f472b6"/>
+            <stop offset="100%" stop-color="#db2777"/>
+          </linearGradient>
+        </defs>
+        <circle cx="210" cy="210" r="180" fill="url(#glow)" opacity="0.15"/>
+
+        <!-- Designer label -->
+        <rect x="130" y="50" width="90" height="28" rx="14" fill="url(#g1)" opacity="0.9"/>
+        <text x="175" y="69" text-anchor="middle" fill="white" font-size="12" font-weight="600" font-family="Inter,sans-serif">Designer</text>
+        <path d="M175 78 L175 95" stroke="#c084fc" stroke-width="2" stroke-dasharray="4 3"/>
+        <polygon points="175,95 171,88 179,88" fill="#c084fc"/>
+
+        <!-- Developer label -->
+        <rect x="230" y="340" width="100" height="28" rx="14" fill="url(#g3)" opacity="0.9"/>
+        <text x="280" y="359" text-anchor="middle" fill="white" font-size="12" font-weight="600" font-family="Inter,sans-serif">Developer</text>
+        <path d="M280 340 L280 320" stroke="#f472b6" stroke-width="2" stroke-dasharray="4 3"/>
+        <polygon points="280,320 276,327 284,327" fill="#f472b6"/>
+
+        <!-- Cursor -->
+        <polygon points="140,120 140,170 155,155 170,180 180,175 165,150 185,145" fill="#2dd4bf" stroke="#14b8a6" stroke-width="1.5"/>
+        <rect x="138" y="118" width="24" height="24" rx="3" stroke="#f472b6" stroke-width="2" fill="none" transform="rotate(15 150 130)"/>
+
+        <!-- Hand -->
+        <path d="M200 180 Q190 200 195 230 Q200 260 220 280 Q240 300 260 290 Q280 280 285 260 Q290 240 280 220 Q270 200 260 190 Q250 180 240 185 Q230 190 225 200 Q220 210 215 205 Q210 200 210 190 Q210 180 200 180" fill="none" stroke="#f472b6" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M225 200 Q220 170 225 150 Q230 130 240 135 Q250 140 248 160 Q246 180 240 200" fill="none" stroke="#f472b6" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M240 200 Q238 160 245 140 Q252 120 262 125 Q272 130 268 155 Q264 180 258 205" fill="none" stroke="#f472b6" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M258 205 Q258 170 265 150 Q272 130 282 135 Q292 140 288 165 Q284 190 278 215" fill="none" stroke="#f472b6" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M278 215 Q280 180 288 165 Q296 150 305 155 Q314 160 308 185 Q302 210 295 230" fill="none" stroke="#f472b6" stroke-width="2.5" stroke-linecap="round"/>
+
+        <!-- Color picker -->
+        <rect x="100" y="220" width="14" height="40" rx="7" fill="#e4e4e7" stroke="#a1a1aa" stroke-width="1.5" transform="rotate(-25 107 240)"/>
+        <rect x="103" y="223" width="8" height="18" rx="4" fill="#2dd4bf" transform="rotate(-25 107 240)"/>
+
+        <!-- Circles -->
+        <circle cx="120" cy="280" r="12" fill="url(#g2)" opacity="0.8"/>
+        <circle cx="150" cy="295" r="10" fill="url(#g1)" opacity="0.8"/>
+        <circle cx="175" cy="285" r="8" fill="url(#g3)" opacity="0.8"/>
+
+        <!-- Typography -->
+        <rect x="90" y="320" width="80" height="28" rx="6" stroke="#f472b6" stroke-width="1.5" fill="none"/>
+        <text x="130" y="339" text-anchor="middle" fill="#2dd4bf" font-size="14" font-weight="500" font-family="monospace">AaBbCc</text>
+        <text x="100" y="315" fill="#a1a1aa" font-size="9" font-family="Inter,sans-serif">H1</text>
+
+        <!-- Sliders -->
+        <rect x="80" y="250" width="50" height="6" rx="3" fill="#f472b6" opacity="0.7"/>
+        <rect x="80" y="262" width="35" height="6" rx="3" fill="#f472b6" opacity="0.5"/>
+        <rect x="80" y="274" width="20" height="6" rx="3" fill="#f472b6" opacity="0.3"/>
+
+        <!-- Code -->
+        <text x="160" y="240" fill="#a1a1aa" font-size="20" font-family="monospace">{ }</text>
+        <text x="185" y="240" fill="#a1a1aa" font-size="16" font-family="monospace">&lt;/&gt;</text>
+
+        <!-- Nodes -->
+        <circle cx="280" cy="140" r="6" fill="url(#g2)"/>
+        <circle cx="310" cy="130" r="6" fill="url(#g1)"/>
+        <circle cx="340" cy="140" r="6" fill="url(#g3)"/>
+        <line x1="280" y1="140" x2="310" y2="130" stroke="#3f3f46" stroke-width="2"/>
+        <line x1="310" y1="130" x2="340" y2="140" stroke="#3f3f46" stroke-width="2"/>
+
+        <!-- Dotted box -->
+        <rect x="290" y="90" width="50" height="50" rx="4" stroke="#a1a1aa" stroke-width="1.5" stroke-dasharray="4 3" fill="none"/>
+        <circle cx="315" cy="115" r="10" fill="url(#g2)" opacity="0.6"/>
+
+        <!-- Sparkles -->
+        <path d="M260 80 Q265 90 275 95 Q265 100 260 110 Q255 100 245 95 Q255 90 260 80" fill="#c084fc" opacity="0.8"/>
+        <path d="M180 90 Q183 96 189 99 Q183 102 180 108 Q177 102 171 99 Q177 96 180 90" fill="#2dd4bf" opacity="0.7"/>
+        <path d="M330 200 Q333 206 339 209 Q333 212 330 218 Q327 212 321 209 Q327 206 330 200" fill="#f472b6" opacity="0.7"/>
+
+        <!-- Arrow -->
+        <path d="M110 180 Q130 160 150 170" stroke="#f472b6" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <polygon points="150,170 142,166 144,174" fill="#f472b6"/>
+
+        <!-- Bars -->
+        <rect x="200" y="300" width="60" height="10" rx="3" fill="url(#g2)" opacity="0.8"/>
+        <rect x="200" y="315" width="45" height="10" rx="3" fill="url(#g2)" opacity="0.6"/>
+        <rect x="200" y="330" width="30" height="10" rx="3" fill="url(#g2)" opacity="0.4"/>
+
+        <!-- Icons -->
+        <text x="180" y="195" fill="#a1a1aa" font-size="14">T</text>
+        <rect x="200" y="185" width="14" height="14" rx="2" stroke="#a1a1aa" stroke-width="1.5" fill="none"/>
+        <line x1="203" y1="191" x2="211" y2="191" stroke="#a1a1aa" stroke-width="1"/>
+        <line x1="203" y1="194" x2="209" y2="194" stroke="#a1a1aa" stroke-width="1"/>
+        <circle cx="230" cy="192" r="7" stroke="#a1a1aa" stroke-width="1.5" fill="none"/>
+        <path d="M250 188 Q255 192 250 196" stroke="#a1a1aa" stroke-width="1.5" fill="none"/>
+        <path d="M270 188 L275 196 M275 188 L270 196" stroke="#a1a1aa" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <!-- Form -->
+    <div class="split-form">
+      <h1 class="h1">Log into my account</h1>
+      <p class="subtitle">Penpot is the free open-source design tool for Design and Code collaboration</p>
+
+      <div class="social-row">
+        <button class="social-btn">
+          <svg width="16" height="16" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.842 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
+          Google
+        </button>
+        <button class="social-btn">
+          <svg width="16" height="16" viewBox="0 0 18 18" fill="white"><path d="M9 0C4.03 0 0 4.03 0 9c0 3.98 2.58 7.35 6.16 8.54.45.08.62-.2.62-.43 0-.21-.01-.77-.01-1.51-2.5.54-3.03-1.21-3.03-1.21-.41-1.04-1-1.32-1-1.32-.82-.56.06-.55.06-.55.9.06 1.38.93 1.38.93.8 1.37 2.1.98 2.61.75.08-.58.31-.98.57-1.2-2-.23-4.1-1-4.1-4.45 0-.98.35-1.78.92-2.41-.09-.23-.4-1.15.09-2.39 0 0 .75-.24 2.46.92.71-.2 1.48-.3 2.24-.3.76 0 1.53.1 2.24.3 1.7-1.16 2.46-.92 2.46-.92.49 1.24.18 2.16.09 2.39.57.63.92 1.43.92 2.41 0 3.46-2.1 4.22-4.1 4.45.32.28.61.82.61 1.65 0 1.19-.01 2.15-.01 2.44 0 .24.16.52.62.43C15.42 16.35 18 12.98 18 9c0-4.97-4.03-9-9-9z"/></svg>
+          GitHub
+        </button>
+        <button class="social-btn">
+          <svg width="16" height="16" viewBox="0 0 18 18"><path fill="#E24329" d="M9 15.5l3.5-10.8H5.5z"/><path fill="#FC6D26" d="M9 15.5L5.5 4.7H1.4z"/><path fill="#FCA326" d="M1.4 4.7L0 8.9c-.1.3 0 .7.3.9l8.7 5.7z"/><path fill="#E24329" d="M1.4 4.7h4.1L3.5.6c-.2-.5-.8-.5-.9 0z"/><path fill="#FC6D26" d="M9 15.5l3.5-10.8h4.1z"/><path fill="#FCA326" d="M16.6 4.7l1.4 4.2c.1.3 0 .7-.3.9L9 15.5z"/><path fill="#E24329" d="M16.6 4.7h-4.1l2-4.1c.2-.5.8-.5.9 0z"/></svg>
+          GitLab
+        </button>
+      </div>
+
+      <div class="divider"><span class="divider-text">or</span></div>
+
+      <label class="label">Work Email</label>
+      <input type="email" class="input" placeholder="Work email" style="margin-bottom:20px;">
+
+      <div class="text-right"><a href="#" class="link" onclick="go('forgot'); return false;">Forgot password?</a></div>
+
+      <button class="btn-primary">Continue</button>
+
+      <p class="text-center">No account yet? <a href="#" class="link" onclick="go('register'); return false;">Create an account</a></p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     PAGE: REGISTER
+     ═══════════════════════════════════════ -->
+<div class="page" id="page-register">
+  <div class="centered">
+    <h1 class="h1" style="margin-bottom:28px;">Create an account</h1>
+
+    <div class="social-row">
+      <button class="social-btn">
+        <svg width="16" height="16" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.842 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
+        Google
+      </button>
+      <button class="social-btn">
+        <svg width="16" height="16" viewBox="0 0 18 18" fill="white"><path d="M9 0C4.03 0 0 4.03 0 9c0 3.98 2.58 7.35 6.16 8.54.45.08.62-.2.62-.43 0-.21-.01-.77-.01-1.51-2.5.54-3.03-1.21-3.03-1.21-.41-1.04-1-1.32-1-1.32-.82-.56.06-.55.06-.55.9.06 1.38.93 1.38.93.8 1.37 2.1.98 2.61.75.08-.58.31-.98.57-1.2-2-.23-4.1-1-4.1-4.45 0-.98.35-1.78.92-2.41-.09-.23-.4-1.15.09-2.39 0 0 .75-.24 2.46.92.71-.2 1.48-.3 2.24-.3.76 0 1.53.1 2.24.3 1.7-1.16 2.46-.92 2.46-.92.49 1.24.18 2.16.09 2.39.57.63.92 1.43.92 2.41 0 3.46-2.1 4.22-4.1 4.45.32.28.61.82.61 1.65 0 1.19-.01 2.15-.01 2.44 0 .24.16.52.62.43C15.42 16.35 18 12.98 18 9c0-4.97-4.03-9-9-9z"/></svg>
+        GitHub
+      </button>
+      <button class="social-btn">
+        <svg width="16" height="16" viewBox="0 0 18 18"><path fill="#E24329" d="M9 15.5l3.5-10.8H5.5z"/><path fill="#FC6D26" d="M9 15.5L5.5 4.7H1.4z"/><path fill="#FCA326" d="M1.4 4.7L0 8.9c-.1.3 0 .7.3.9l8.7 5.7z"/><path fill="#E24329" d="M1.4 4.7h4.1L3.5.6c-.2-.5-.8-.5-.9 0z"/><path fill="#FC6D26" d="M9 15.5l3.5-10.8h4.1z"/><path fill="#FCA326" d="M16.6 4.7l1.4 4.2c.1.3 0 .7-.3.9L9 15.5z"/><path fill="#E24329" d="M16.6 4.7h-4.1l2-4.1c.2-.5.8-.5.9 0z"/></svg>
+        GitLab
+      </button>
+    </div>
+
+    <div class="divider" style="margin-bottom:28px;"></div>
+
+    <label class="label">Full Name</label>
+    <input type="text" class="input" placeholder="Full Name" style="margin-bottom:20px;">
+
+    <label class="label">Work Email</label>
+    <input type="email" class="input" placeholder="Work email" style="margin-bottom:20px;">
+
+    <label class="label">Password</label>
+    <div class="input-wrap">
+      <input type="password" id="pwd" class="input" placeholder="Password">
+      <button class="eye-btn" onclick="togglePwd()" type="button">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+    <p class="hint">At least 8 characters</p>
+
+    <label class="check">
+      <input type="checkbox">
+      <span>I agree to the <a href="#">terms of service</a> and <a href="#">privacy policy</a>.</span>
+    </label>
+
+    <label class="check">
+      <input type="checkbox">
+      <span>Send me product updates (new features, releases, fixes...).</span>
+    </label>
+
+    <button class="btn-primary" style="margin-bottom:24px;">Create an account</button>
+
+    <p class="text-center">Already have an account? <a href="#" class="link" onclick="go('login'); return false;">Login here.</a></p>
+    <div class="footer-links">
+      <a href="#">Terms of service</a> <span style="color:#71717a;">and</span> <a href="#">Privacy policy</a>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     PAGE: NAME STEP
+     ═══════════════════════════════════════ -->
+<div class="page" id="page-name">
+  <div class="centered">
+    <h1 class="h1">Your name</h1>
+    <p class="subtitle" style="margin-bottom:32px;">Let us know what we should call you on the dashboard and in emails.</p>
+
+    <label class="label">Full Name</label>
+    <input type="text" class="input" value="Oluwaseyi Emmanuel" style="margin-bottom:24px;">
+
+    <label class="check">
+      <input type="checkbox">
+      <span>I agree to the <a href="#">terms of service</a> and <a href="#">privacy policy</a>.</span>
+    </label>
+
+    <label class="check">
+      <input type="checkbox">
+      <span>Send me product updates (new features, releases, fixes...).</span>
+    </label>
+
+    <button class="btn-primary">Create an account</button>
+    <button class="btn-secondary" onclick="go('register')">Go back</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     PAGE: FORGOT PASSWORD
+     ═══════════════════════════════════════ -->
+<div class="page" id="page-forgot">
+  <div class="centered">
+    <div class="forgot-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+    </div>
+
+    <h1 class="h1">Forgot your password?</h1>
+    <p class="subtitle" style="margin-bottom:28px;">Enter your email address and we'll send you a link to reset your password.</p>
+
+    <label class="label">Work Email</label>
+    <input type="email" class="input" placeholder="Work email" style="margin-bottom:24px;">
+
+    <button class="btn-primary" style="margin-bottom:20px;">Send reset link</button>
+
+    <p class="text-center"><a href="#" class="link" onclick="go('login'); return false;">Back to log in</a></p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     JAVASCRIPT
+     ═══════════════════════════════════════ -->
+<script>
+  function go(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + page).classList.add('active');
+
+    const loginTab = document.getElementById('tab-login');
+    const regTab  = document.getElementById('tab-register');
+
+    if (page === 'login') {
+      loginTab.classList.add('active');
+      regTab.classList.remove('active');
+    } else if (page === 'register' || page === 'name') {
+      regTab.classList.add('active');
+      loginTab.classList.remove('active');
+    } else {
+      // forgot password — no tab active
+      loginTab.classList.remove('active');
+      regTab.classList.remove('active');
+    }
+  }
+
+  function togglePwd() {
+    const el = document.getElementById('pwd');
+    el.type = el.type === 'password' ? 'text' : 'password';
+  }
+</script>
+
+</body>
+</html>
