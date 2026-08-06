@@ -43,7 +43,7 @@ export const AppleIcon = () => {
       alt="Apple"
       width="16"
       height="16"
-      style={{ display: 'block' }}
+      className="auth-social-icon"
     />
   );
 };
@@ -236,13 +236,7 @@ export const AuthIllustration = () => (
   // eslint-disable-next-line @next/next/no-img-element
   <img 
     src="/login.png" 
-    alt="Team collaboration" 
-    style={{
-      width: '100%',
-      maxWidth: '510px',
-      height: 'auto',
-      objectFit: 'cover',
-      borderRadius: '16px'
-    }}
+    alt="Team collaboration"
+    className="auth-illustration-image"
   />
 );
