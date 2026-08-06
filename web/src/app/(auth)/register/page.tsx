@@ -24,7 +24,6 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
-  const [agreeUpdates, setAgreeUpdates] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -150,10 +149,6 @@ export default function RegisterPage() {
 
           <Checkbox checked={agreeTerms} onChange={setAgreeTerms}>
             I agree to the <a href="/terms" className="auth-link">terms of service</a> and <a href="/privacy" className="auth-link">privacy policy</a>.
-          </Checkbox>
-
-          <Checkbox checked={agreeUpdates} onChange={setAgreeUpdates}>
-            Send me product updates (new features, releases, fixes...).
           </Checkbox>
 
           {error && <p className="auth-alert auth-alert-error">{error}</p>}

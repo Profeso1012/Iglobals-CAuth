@@ -43,7 +43,7 @@ export const AppleIcon = () => {
       alt="Apple"
       width="16"
       height="16"
-      style={{ display: 'block' }}
+      className="auth-social-icon"
     />
   );
 };
@@ -155,10 +155,10 @@ export const InputField = ({ label, type = 'text', value, onChange, placeholder,
   const inputType = isPassword ? (showPassword ? 'text' : 'password') : type;
 
   return (
-    <div className="auth-input-wrap" style={{ position: 'relative', marginBottom: '1.25rem' }}>
+    <div className="auth-input-wrap">
       <label className="auth-label">{label}</label>
       {isPassword ? (
-        <div style={{ position: 'relative' }}>
+        <div className="auth-password-wrap">
           <input
             type={inputType}
             value={value}
@@ -236,13 +236,7 @@ export const AuthIllustration = () => (
   // eslint-disable-next-line @next/next/no-img-element
   <img 
     src="/login.png" 
-    alt="Team collaboration" 
-    style={{
-      width: '100%',
-      maxWidth: '510px',
-      height: 'auto',
-      objectFit: 'cover',
-      borderRadius: '16px'
-    }}
+    alt="Team collaboration"
+    className="auth-illustration-image"
   />
 );
