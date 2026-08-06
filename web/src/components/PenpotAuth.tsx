@@ -155,10 +155,10 @@ export const InputField = ({ label, type = 'text', value, onChange, placeholder,
   const inputType = isPassword ? (showPassword ? 'text' : 'password') : type;
 
   return (
-    <div className="auth-input-wrap" style={{ position: 'relative', marginBottom: '1.25rem' }}>
+    <div className="auth-input-wrap">
       <label className="auth-label">{label}</label>
       {isPassword ? (
-        <div style={{ position: 'relative' }}>
+        <div className="auth-password-wrap">
           <input
             type={inputType}
             value={value}

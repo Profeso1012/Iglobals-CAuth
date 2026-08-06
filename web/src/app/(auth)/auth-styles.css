@@ -325,6 +325,11 @@ input, textarea, select {
 
 .auth-input-wrap {
   position: relative;
+  margin-bottom: 1.25rem;
+}
+
+.auth-password-wrap {
+  position: relative;
 }
 
 .auth-input-wrap .auth-input { 
@@ -410,8 +415,36 @@ input, textarea, select {
   font-weight: 600;
 }
 
-.auth-check a:hover, .auth-link:hover { 
-  text-decoration: underline; 
+.auth-check a:hover, .auth-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .auth-tabs {
+    display: none;
+  }
+
+  .auth-container {
+    min-height: auto;
+    padding-top: 4.5rem;
+  }
+
+  .auth-split {
+    min-height: auto;
+    padding: 0 1rem 2rem;
+  }
+
+  .auth-centered {
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 1rem 2rem;
+  }
+
+  .auth-centered .auth-check span {
+    font-size: 0.625rem;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
 }
 
 /* ── Buttons ─────────────────────────────────────────────── */
