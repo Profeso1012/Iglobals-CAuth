@@ -23,6 +23,7 @@ export default function AdminClientDetailPage() {
   const [client, setClient] = useState<Client | null>(null);
   const [usage, setUsage] = useState<Usage | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -40,9 +41,13 @@ export default function AdminClientDetailPage() {
   const [newSecret, setNewSecret] = useState<string | null>(null);
 
   function load() {
+    setLoadError('');
     fetch(`/api/admin/clients/${clientId}`, { credentials: 'include' })
-      .then(r => r.json())
-      .then(d => {
+      .then(async r => {
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d.client) {
+          throw new Error(d.error_description || d.error || `Request failed (${r.status})`);
+        }
         setClient(d.client);
         setUsage(d.usage);
         setName(d.client.name);
@@ -52,6 +57,7 @@ export default function AdminClientDetailPage() {
         setScopes(d.client.allowed_scopes || []);
         setIsActive(d.client.is_active);
       })
+      .catch(err => setLoadError(err.message || 'Failed to load client.'))
       .finally(() => setLoading(false));
   }
 
@@ -98,7 +104,7 @@ export default function AdminClientDetailPage() {
   }
 
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}><span className="spinner spinner-primary" style={{ width: 32, height: 32 }} /></div>;
-  if (!client) return <div className="alert alert-error">Client not found.</div>;
+  if (!client) return <div className="alert alert-error">{loadError || 'Client not found.'}</div>;
 
   return (
     <>

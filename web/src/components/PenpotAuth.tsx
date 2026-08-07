@@ -235,7 +235,7 @@ export const Button = ({ children, onClick, disabled, variant = 'primary', type 
 export const AuthIllustration = () => (
   // eslint-disable-next-line @next/next/no-img-element
   <img 
-    src="/login.png" 
+    src="/login-2.png" 
     alt="Team collaboration" 
     style={{
       width: '100%',
