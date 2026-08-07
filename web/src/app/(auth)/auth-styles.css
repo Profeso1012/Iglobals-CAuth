@@ -156,7 +156,8 @@ input, textarea, select {
   overflow: hidden;
 }
 
-.auth-art img {
+.auth-art img,
+.auth-illustration-image {
   width: 100%;
   max-width: 510px;
   height: auto;
@@ -236,8 +237,13 @@ input, textarea, select {
   border-color: var(--auth-text-muted);
 }
 
-.auth-social-btn svg {
+.auth-social-btn svg,
+.auth-social-icon {
   flex-shrink: 0;
+}
+
+.auth-social-icon {
+  display: block;
 }
 
 /* ── Divider ─────────────────────────────────────────────── */
@@ -325,6 +331,11 @@ input, textarea, select {
 
 .auth-input-wrap {
   position: relative;
+  margin-bottom: 1.25rem;
+}
+
+.auth-password-wrap {
+  position: relative;
 }
 
 .auth-input-wrap .auth-input { 
@@ -410,8 +421,42 @@ input, textarea, select {
   font-weight: 600;
 }
 
-.auth-check a:hover, .auth-link:hover { 
-  text-decoration: underline; 
+.auth-check a:hover, .auth-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .auth-logo {
+    left: 50%;
+    height: 2.75rem;
+    transform: translateX(-50%);
+  }
+
+  .auth-tabs {
+    display: none;
+  }
+
+  .auth-container {
+    min-height: auto;
+    padding-top: 7rem;
+  }
+
+  .auth-split {
+    min-height: auto;
+    padding: 0 1rem 2rem;
+  }
+
+  .auth-centered {
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 2rem 2rem;
+  }
+
+  .auth-centered .auth-check span {
+    font-size: 0.625rem;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
 }
 
 /* ── Buttons ─────────────────────────────────────────────── */
