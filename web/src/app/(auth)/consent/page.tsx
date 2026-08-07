@@ -24,7 +24,9 @@ const SCOPE_LABELS: Record<string, { label: string; desc: string }> = {
 export default function ConsentPage() {
   const [searchParams, setSearchParams] = useState<URLSearchParams | null>(null);
   const [client, setClient]             = useState<any>(null);
+  const [user, setUser]                 = useState<any>(null);
   const [loading, setLoading]           = useState(true);
+  const [userLoading, setUserLoading]   = useState(true);
   const [deciding, setDeciding]         = useState(false);
   const [error, setError]               = useState('');
   const [logoError, setLogoError]       = useState(false);
@@ -40,6 +42,20 @@ export default function ConsentPage() {
   const codeChallenge = searchParams?.get('code_challenge') ?? '';
   const scopes        = (searchParams?.get('scope') ?? 'openid').split(' ');
   const displayScopes = scopes.includes('openid') ? scopes : ['openid', ...scopes];
+
+  useEffect(() => {
+    if (!searchParams) return;
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then(r => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then(setUser)
+      .catch(() => {
+        // No valid session — send them to log in with the same OAuth context
+        // (client_id/redirect_uri/state/code_challenge/scope) so /api/auth/login
+        // can resume this exact authorization request afterward.
+        window.location.href = `/login?${searchParams.toString()}`;
+      })
+      .finally(() => setUserLoading(false));
+  }, [searchParams]);
 
   useEffect(() => {
     if (!searchParams || !clientId) return;
@@ -86,14 +102,15 @@ export default function ConsentPage() {
   }
 
   /* Loading */
-  if (loading) return (
+  if (loading || userLoading) return (
     <div className="cs-spinner-wrap">
       <div className="cs-spinner" />
     </div>
   );
 
-  const appInitial = (client?.name?.charAt(0) ?? '?').toUpperCase();
-  const showLogo = client?.logo_url && !logoError;
+  const appInitial  = (client?.name?.charAt(0) ?? '?').toUpperCase();
+  const showLogo    = client?.logo_url && !logoError;
+  const userInitial = (user?.first_name?.charAt(0) ?? user?.email?.charAt(0) ?? '?').toUpperCase();
 
   return (
     <>
@@ -123,8 +140,8 @@ export default function ConsentPage() {
 
           {/* Signed-in account chip */}
           <div className="cs-chip">
-            <div className="cs-chip-avatar">U</div>
-            <span className="cs-chip-text">user@iglobals.com</span>
+            <div className="cs-chip-avatar">{userInitial}</div>
+            <span className="cs-chip-text">{user?.email}</span>
           </div>
 
           {/* Access line */}
