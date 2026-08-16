@@ -134,7 +134,7 @@ export async function GET(req: NextRequest) {
         code_challenge: code_challenge || '',
         scope: scope || 'openid profile email',
       });
-      targetUrl = `/oauth/consent?${params.toString()}`;
+      targetUrl = `/consent?${params.toString()}`;
     }
 
     const response = NextResponse.redirect(new URL(targetUrl, req.url));

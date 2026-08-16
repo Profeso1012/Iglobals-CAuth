@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
       });
       return NextResponse.json({
         success: true,
-        redirect_to: `/oauth/consent?${params.toString()}`
+        redirect_to: `/consent?${params.toString()}`
       }, {
         headers: response.headers
       });
