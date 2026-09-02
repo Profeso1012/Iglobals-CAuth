@@ -25,4 +25,9 @@ export const config = {
   adminJwtSecret: process.env.ADMIN_JWT_SECRET!,
   adminSecret: process.env.ADMIN_SECRET,
   redisUrl: process.env.REDIS_URL,
+  // Centralized Paystack webhook relay (see api/webhooks/paystack) - the ONE
+  // shared secret key for the ONE shared Paystack account used by every
+  // client app. Never sent to client apps - they get their own per-client
+  // relay secret instead (client_webhook_configs.relay_secret_encrypted).
+  paystackSecretKey: process.env.PAYSTACK_SECRET_KEY!,
 };

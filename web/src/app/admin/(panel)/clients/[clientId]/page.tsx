@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, X, Save, RefreshCw, AlertCircle, CheckCircle, Grid3x3, Users, KeyRound } from 'lucide-react';
+import { ArrowLeft, X, Save, RefreshCw, AlertCircle, CheckCircle, Grid3x3, Users, KeyRound, Webhook } from 'lucide-react';
 import { SecretModal, ToggleSwitch, ConfirmModal } from '@/components/AdminUI';
 
 const DEFAULT_SCOPES = ['openid', 'profile', 'email'];
@@ -39,6 +39,54 @@ export default function AdminClientDetailPage() {
   const [showRotateConfirm, setShowRotateConfirm] = useState(false);
   const [rotating, setRotating] = useState(false);
   const [newSecret, setNewSecret] = useState<string | null>(null);
+
+  const [webhookConfig, setWebhookConfig] = useState<{ webhook_url: string } | null>(null);
+  const [webhookUrlInput, setWebhookUrlInput] = useState('');
+  const [savingWebhook, setSavingWebhook] = useState(false);
+  const [webhookError, setWebhookError] = useState('');
+  const [webhookSuccess, setWebhookSuccess] = useState('');
+  const [showRotateRelayConfirm, setShowRotateRelayConfirm] = useState(false);
+  const [rotatingRelay, setRotatingRelay] = useState(false);
+  const [newRelaySecret, setNewRelaySecret] = useState<string | null>(null);
+
+  function loadWebhookConfig() {
+    fetch(`/api/admin/clients/${clientId}/webhooks`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => {
+        setWebhookConfig(d.config || null);
+        setWebhookUrlInput(d.config?.webhook_url || '');
+      })
+      .catch(() => {});
+  }
+
+  useEffect(() => { loadWebhookConfig(); }, [clientId]);
+
+  async function handleSaveWebhook() {
+    setSavingWebhook(true); setWebhookError(''); setWebhookSuccess('');
+    try {
+      const res = await fetch(`/api/admin/clients/${clientId}/webhooks`, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ webhook_url: webhookUrlInput }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setWebhookError(data.error_description || 'Failed to save.'); return; }
+      setWebhookConfig(data.config);
+      if (data.relay_secret) setNewRelaySecret(data.relay_secret);
+      setWebhookSuccess('Webhook saved.');
+      setTimeout(() => setWebhookSuccess(''), 3000);
+    } catch { setWebhookError('Network error. Try again.'); }
+    finally { setSavingWebhook(false); }
+  }
+
+  async function handleRotateRelaySecret() {
+    setRotatingRelay(true);
+    try {
+      const res = await fetch(`/api/admin/clients/${clientId}/webhooks/rotate-secret`, { method: 'POST', credentials: 'include' });
+      const data = await res.json();
+      if (res.ok) { setNewRelaySecret(data.relay_secret); setShowRotateRelayConfirm(false); }
+    } finally { setRotatingRelay(false); }
+  }
 
   function load() {
     setLoadError('');
@@ -204,6 +252,37 @@ export default function AdminClientDetailPage() {
         </div>
       </div>
 
+      <div className="section-card">
+        <div className="section-header"><span className="section-title"><Webhook size={16} style={{ verticalAlign: -3, marginRight: 6 }} />Payment webhooks</span></div>
+        <div className="section-body">
+          <p className="page-desc" style={{ marginTop: 0 }}>
+            Paystack events for this client are relayed here by ICA (one shared Paystack account across all client apps) -
+            this app never talks to Paystack&apos;s webhook directly. Point this at your own endpoint that verifies the
+            <code> x-ica-relay-signature</code> header using the relay secret below.
+          </p>
+          {webhookError && <div className="alert alert-error"><AlertCircle size={16} /><span>{webhookError}</span></div>}
+          {webhookSuccess && <div className="alert alert-success"><CheckCircle size={16} /><span>{webhookSuccess}</span></div>}
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="webhook-url">Your app&apos;s webhook URL</label>
+            <input id="webhook-url" className="form-input form-input-no-icon" placeholder="https://myapp.com/api/webhooks/ica-relay/paystack"
+              value={webhookUrlInput} onChange={e => setWebhookUrlInput(e.target.value)} disabled={savingWebhook} />
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button className="btn btn-primary" onClick={handleSaveWebhook} disabled={savingWebhook || !webhookUrlInput}>
+              {savingWebhook ? <span className="spinner" /> : <Save size={16} />}
+              {savingWebhook ? 'Saving…' : 'Save webhook URL'}
+            </button>
+            {webhookConfig && (
+              <button className="btn btn-ghost" onClick={() => setShowRotateRelayConfirm(true)} disabled={savingWebhook}>
+                <KeyRound size={16} /> Rotate relay secret
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
       {showRotateConfirm && (
         <ConfirmModal
           title="Rotate client secret"
@@ -218,6 +297,22 @@ export default function AdminClientDetailPage() {
 
       {newSecret && (
         <SecretModal title="Secret rotated" secret={newSecret} onClose={() => setNewSecret(null)} />
+      )}
+
+      {showRotateRelayConfirm && (
+        <ConfirmModal
+          title="Rotate webhook relay secret"
+          description="This immediately invalidates the current relay secret. This app's webhook endpoint will fail signature verification on new events until it's updated with the new secret."
+          confirmLabel="Rotate secret"
+          danger
+          loading={rotatingRelay}
+          onConfirm={handleRotateRelaySecret}
+          onCancel={() => setShowRotateRelayConfirm(false)}
+        />
+      )}
+
+      {newRelaySecret && (
+        <SecretModal title="Webhook relay secret" secret={newRelaySecret} onClose={() => setNewRelaySecret(null)} />
       )}
     </>
   );
