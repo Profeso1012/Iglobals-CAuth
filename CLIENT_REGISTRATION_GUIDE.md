@@ -1,281 +1,151 @@
-# OAuth Client Registration Guide
+# ICA Admin Guide: Registering & Managing Client Apps
 
-## How to Register a Client App with ICA
+This is the guide for whoever administers ICA itself — registering a new app (iTest, iGlobal_edu, or anything new) as an OAuth client, editing an existing one, and setting up its payment webhook relay. It reflects the real admin panel and admin API as they exist today, not the manual-SQL-only approach from ICA's early days.
 
-When a third-party application wants to use iGlobals Central Auth (ICA) for authentication, they need to register their application as an OAuth client.
-
----
-
-## What Information Clients Need to Provide
-
-When registering, clients must provide:
-
-1. **Client ID** - Unique identifier for the app (e.g., `my-awesome-app`)
-2. **Client Secret** - Secure password for server-to-server communication
-3. **App Name** - Human-readable display name (e.g., `"My Awesome App"`)
-4. **Logo URL** - Public URL to their app logo (optional)
-5. **Redirect URIs** - Allowed callback URLs after authentication
+For the deeper technical design of the webhook relay (signature scheme, retry behavior, DB tables), see [`docs/PAYSTACK_WEBHOOK_RELAY.md`](./docs/PAYSTACK_WEBHOOK_RELAY.md). For the OAuth/PKCE mechanics, see [`OAUTH_FLOW_EXPLAINED.md`](./OAUTH_FLOW_EXPLAINED.md).
 
 ---
 
-## Client Logo Requirements
+## 1. Getting Admin Access
 
-### Logo Specifications:
-- **Format:** PNG, JPG, or SVG
-- **Size:** Recommended 512x512px (will be displayed at 56x56px)
-- **Shape:** Square or circular (will be displayed in a circle)
-- **Hosting:** Must be publicly accessible via HTTPS
-- **File Size:** Under 200KB recommended
-
-### Example Logo URLs:
-```
-https://cdn.myapp.com/logo.png
-https://myapp.com/assets/logo-512.png
-https://storage.googleapis.com/myapp-assets/logo.png
-```
-
-### ⚠️ **Important Notes:**
-- ICA does **NOT** host client logos - clients must host their own
-- The logo URL must be **publicly accessible** (no authentication required)
-- Use HTTPS URLs only (HTTP will not work in production)
-- The logo will be displayed on the consent screen when users authorize your app
-
----
-
-## Method 1: Manual Registration (SQL)
-
-For development or testing, you can manually insert a client into the database:
-
-```sql
--- 1. Generate a bcrypt hash for your client secret
--- Use: https://bcrypt-generator.com/ or run: node -e "console.log(require('bcrypt').hashSync('your_secret', 12))"
-
--- 2. Insert the client
-INSERT INTO ica.oauth_clients (
-    client_id,
-    client_secret_hash,
-    name,
-    logo_url,
-    redirect_uris,
-    is_active
-) VALUES (
-    'my-awesome-app',                          -- Your chosen client_id
-    '$2b$12$EkN4KYoiwkWYEswM0uw0mOn...',     -- Bcrypt hash of your secret
-    'My Awesome Application',                  -- Display name shown to users
-    'https://myapp.com/logo.png',             -- Your logo URL (or NULL)
-    '["https://myapp.com/auth/callback"]',    -- Array of allowed redirect URIs
-    true                                       -- Client is active
-);
-```
-
-### Example: Register iPod Test App
-
-```sql
-INSERT INTO ica.oauth_clients (
-    client_id,
-    client_secret_hash,
-    name,
-    logo_url,
-    redirect_uris
-) VALUES (
-    'ipod_itest_001',
-    '$2b$12$LQv3c1yqBwlgNWBp7bKEauT.wFdkjK0RZKzQqLMU8aGMPKJAJqJne',  -- Hash of: test_secret_12345
-    'iPod Test Application',
-    'https://cdn.example.com/ipod-logo.png',  -- Replace with actual logo URL
-    '["http://localhost:5000/callback"]'
-);
-```
-
----
-
-## Method 2: Admin API Registration (Coming Soon)
-
-In the future, clients will register through an admin portal:
+Admin access is an explicit email allowlist (`ica.admin_emails`) — there's no self-serve signup. To make someone an admin:
 
 ```bash
-POST /api/admin/clients
-Authorization: Bearer ADMIN_TOKEN
-Content-Type: application/json
+node scripts/add-admin-email.js newdev@example.com
+```
 
+This needs `DATABASE_URL` set (same one the app uses) and is safe to re-run — it won't error if the email's already an admin.
+
+## 2. Logging Into the Admin Panel
+
+Go to `/admin/login`. Login is two steps:
+
+1. Enter the shared **admin passphrase** (the `ADMIN_SECRET` env var — same for every admin) and your email (must already be on the allowlist above). This sends a one-time code to that email.
+2. Enter the code. You're now signed in — the panel is at `/admin`, with three sections: **Overview**, **Clients**, **Users**. (Some older docs mention a "Settings" section — it doesn't exist; webhook config lives inside each client's own page.)
+
+If you're scripting against the admin API directly instead of using the UI, the same two steps apply via curl, using a cookie jar to carry the session between requests:
+
+```bash
+curl -c cookies.txt -X POST https://your-ica.example.com/api/admin/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"secret": "the-ADMIN_SECRET-value", "email": "you@example.com"}'
+
+# check your email for the code, then:
+curl -b cookies.txt -c cookies.txt -X POST https://your-ica.example.com/api/admin/auth/verify-otp \
+  -H "Content-Type: application/json" \
+  -d '{"email": "you@example.com", "otp": "123456"}'
+
+# cookies.txt now holds a valid admin session for subsequent requests:
+curl -b cookies.txt https://your-ica.example.com/api/admin/clients
+```
+
+## 3. Registering a New Client App
+
+**Via the UI (normal path):** `/admin/clients` → **Create client**. Fill in the app name, an optional description and logo URL, and at least one redirect URI. Submit, and the client secret is shown **exactly once** — copy it immediately into the new app's `.env` as `ICA_CLIENT_SECRET`; ICA never stores or displays the plaintext again, only a bcrypt hash.
+
+Once created, hand the `client_id` and `client_secret` to whoever is building that app - point them at [`INTEGRATION_GUIDE.md`](./INTEGRATION_GUIDE.md), which covers the SDK, their env vars, and payment webhook setup from their side.
+
+**Via the API** (for scripting a new app's setup):
+
+```bash
+curl -b cookies.txt -X POST https://your-ica.example.com/api/admin/clients \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_id": "my-new-app",
+    "name": "My New Application",
+    "description": "Optional description",
+    "logo_url": "https://cdn.myapp.com/logo.png",
+    "redirect_uris": ["https://myapp.com/auth/callback"],
+    "allowed_scopes": ["openid", "profile", "email"]
+  }'
+```
+
+Response includes `client_secret` once — same one-time-reveal rule as the UI. Notes on the fields:
+- `client_id`: lowercase letters/digits/`_`/`-` only, 3–64 chars, must be unique.
+- `redirect_uris`: at least one full URL required; can hold several (web + mobile + local dev).
+- `allowed_scopes`: defaults to `["openid", "profile", "email"]` if omitted.
+- You do **not** send a `client_secret` — the server always generates it. (Older docs showed a payload with a client-supplied secret; that was never actually how the API works.)
+
+## 4. Editing an Existing Client
+
+`/admin/clients/[clientId]` (UI) or `PATCH /api/admin/clients/[clientId]` (API) — update any of `name`, `description`, `logo_url`, `redirect_uris`, `allowed_scopes`, `is_active`. Send only the fields you're changing:
+
+```bash
+curl -b cookies.txt -X PATCH https://your-ica.example.com/api/admin/clients/my-new-app \
+  -H "Content-Type: application/json" \
+  -d '{"redirect_uris": ["https://myapp.com/auth/callback", "https://myapp.com/auth/callback-mobile"]}'
+```
+
+Setting `is_active: false` disables the client (it can no longer complete OAuth) without deleting it. Changes take effect immediately.
+
+## 5. Rotating a Client Secret
+
+If a secret leaks or you're just rotating on schedule:
+
+```bash
+curl -b cookies.txt -X POST https://your-ica.example.com/api/admin/clients/my-new-app/rotate-secret
+```
+
+Returns the new plaintext secret once — update the client app's `ICA_CLIENT_SECRET` immediately, since the old one stops working right away.
+
+## 6. Setting Up Payment Webhooks for a Client
+
+This is how a client app (iTest, iGlobal_edu, etc.) gets Paystack webhook events, without needing its own Paystack account — ICA holds one shared Paystack account and relays events to whichever client the transaction belongs to.
+
+On the client app's page (`/admin/clients/[clientId]`, "Payment Webhooks" section), or via API:
+
+```bash
+curl -b cookies.txt -X POST https://your-ica.example.com/api/admin/clients/my-new-app/webhooks \
+  -H "Content-Type: application/json" \
+  -d '{"webhook_url": "https://myapp.com/api/webhooks/ica-relay/paystack"}'
+```
+
+The **first** call for a client generates its `relay_secret` and returns it once — save it as that app's `ICA_WEBHOOK_RELAY_SECRET`. Calling this again later just updates the URL and leaves the existing secret alone; use the dedicated rotate endpoint to get a new one:
+
+```bash
+curl -b cookies.txt -X POST https://your-ica.example.com/api/admin/clients/my-new-app/webhooks/rotate-secret
+```
+
+**For this to actually route events to the right app**, the client app must tag every Paystack transaction it initializes with its own `client_id` in the metadata:
+
+```python
 {
-  "client_id": "my-awesome-app",
-  "client_secret": "your_plain_text_secret",
-  "name": "My Awesome Application",
-  "logo_url": "https://myapp.com/logo.png",
-  "redirect_uris": [
-    "https://myapp.com/auth/callback",
-    "https://myapp.com/auth/callback-mobile"
-  ]
+  "email": user_email,
+  "amount": 50000,
+  "metadata": {
+    "client_id": "my-new-app",   # required - this is how ICA knows where to relay the event
+    "purpose": "subscription"     # optional, for the app's own internal routing (e.g. iGlobal_edu splits "subscription" vs "book_purchase")
+  }
 }
 ```
 
----
+And the client app's receiving endpoint must verify `x-ica-relay-signature` (HMAC-SHA512, keyed with its own `ICA_WEBHOOK_RELAY_SECRET` — **not** Paystack's raw secret, which ICA never shares) before trusting the payload. See `app/billing/routes.py` in iTest or `ica_webhook_routes.py` in iGlobal_edu for working reference implementations, or the full walkthrough in `docs/PAYSTACK_WEBHOOK_RELAY.md`.
 
-## How Logo & Name Appear on Consent Screen
+This whole relay setup only needs doing once per client, per environment (once for local/staging, once for production, since the URLs differ).
 
-When a user authorizes your app, they'll see a consent screen like this:
+## 7. Client Logo Requirements
 
-```
-┌─────────────────────────────────────────┐
-│  🌐 Sign in with iGlobals               │
-├─────────────────────────────────────────┤
-│                                         │
-│  [LOGO]                 │  My Awesome  │
-│  My Awesome App         │  Application  │
-│  user@iglobals.com      │  wants to    │
-│                         │  access your  │
-│                         │  I-con Account│
-│                         │               │
-│                         │  ✓ Identity   │
-│                         │  ✓ Profile    │
-│                         │  ✓ Email      │
-│                         │               │
-│                         │  [Cancel] [Allow]
-└─────────────────────────────────────────┘
-```
+Shown on the consent screen when a user authorizes the app. ICA doesn't host logos — the client app hosts its own.
 
-- **Left side:** Shows your logo (or first letter of name), app name, and logged-in user
-- **Right side:** Shows permissions your app is requesting
+- PNG/JPG/SVG, ideally 512×512px (displayed at 56×56px, in a circle)
+- Must be publicly reachable over **HTTPS** (localhost/HTTP URLs won't render for real users)
+- Under ~200KB is plenty
+
+If a logo isn't showing: confirm it opens directly in a browser, check for CORS errors in devtools, and verify what's actually saved with `GET /api/admin/clients/[clientId]` (or just look at the client's edit page).
+
+## 8. Troubleshooting
+
+**"Client not found" on the consent screen** — the `client_id` the app is sending doesn't match any row in `ica.oauth_clients`, or the client was set `is_active: false`. Check via `/admin/clients` or `GET /api/admin/clients/[clientId]`.
+
+**"Invalid client credentials" during token exchange** — the app's `ICA_CLIENT_SECRET` doesn't match. Since the plaintext is only ever shown once (at creation or rotation), if it was lost, rotate it and update the app's env immediately.
+
+**Webhook events never arrive at the client app** — check, in order: (1) is `client_id` actually present in the Paystack transaction's `metadata`, exactly matching the registered `client_id`; (2) does the client have an active `client_webhook_configs` row (`GET /api/admin/clients/[clientId]/webhooks`); (3) is the client's endpoint verifying against the *relay* secret, not Paystack's own webhook secret — these are two different secrets.
 
 ---
 
-## Testing Your Logo
+## See Also
 
-After registering, test that your logo displays correctly:
-
-1. Start OAuth flow from your client app
-2. User should see ICA login page
-3. After login, consent page should show:
-   - Your app logo (if provided)
-   - Your app name
-   - Requested permissions
-
-### If Logo Doesn't Show:
-- ✅ Check logo URL is publicly accessible (open in browser)
-- ✅ Ensure URL uses HTTPS (not HTTP)
-- ✅ Verify logo_url in database is correct: `SELECT logo_url FROM ica.oauth_clients WHERE client_id = 'your-app';`
-- ✅ Check browser console for CORS or loading errors
-- ✅ Try a different image host if current one blocks external access
-
----
-
-## Update Client Information
-
-To update your logo or name after registration:
-
-```sql
--- Update logo
-UPDATE ica.oauth_clients
-SET logo_url = 'https://myapp.com/new-logo.png'
-WHERE client_id = 'my-awesome-app';
-
--- Update name
-UPDATE ica.oauth_clients
-SET name = 'My New App Name'
-WHERE client_id = 'my-awesome-app';
-
--- Update both
-UPDATE ica.oauth_clients
-SET name = 'My New App Name',
-    logo_url = 'https://myapp.com/new-logo.png'
-WHERE client_id = 'my-awesome-app';
-```
-
-Changes take effect immediately - no restart required!
-
----
-
-## Security Best Practices
-
-### Client Secret:
-- **Never** commit client secrets to git
-- Store secrets in environment variables
-- Rotate secrets periodically
-- Use different secrets for development and production
-
-### Logo URL:
-- Use a CDN for better performance
-- Don't use localhost URLs (won't work for other users)
-- Ensure the hosting service has good uptime
-- Consider using versioned URLs (e.g., `/logo-v2.png`) for easier updates
-
-### Redirect URIs:
-- Use HTTPS in production (HTTP only for localhost)
-- Be specific - avoid wildcards
-- Register separate URIs for web, mobile, and development
-
----
-
-## Common Issues
-
-### Issue: Logo doesn't display
-**Solution:** 
-- Open logo URL directly in browser - does it load?
-- Check browser console for CORS errors
-- Try different image host (imgur, cloudinary, etc.)
-
-### Issue: "Client not found" on consent page
-**Solution:** 
-- Verify client_id is correct in your app
-- Check database: `SELECT * FROM ica.oauth_clients WHERE client_id = 'your-id';`
-
-### Issue: "Invalid client credentials" during token exchange
-**Solution:** 
-- You're using the bcrypt hash instead of plain-text secret
-- Use the original plain-text secret you used before hashing
-- See: [VERCEL_DEPLOYMENT_FIX.md](./VERCEL_DEPLOYMENT_FIX.md) for details
-
----
-
-## Example: Complete Registration Flow
-
-### 1. Prepare your logo
-- Create 512x512px PNG
-- Upload to `https://mycdn.com/my-app-logo.png`
-- Test URL in browser
-
-### 2. Generate client secret
-```bash
-# Generate random secret
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-# Output: a1b2c3d4e5f6...
-
-# Hash it for database
-node -e "console.log(require('bcrypt').hashSync('a1b2c3d4e5f6...', 12))"
-# Output: $2b$12$...
-```
-
-### 3. Register in database
-```sql
-INSERT INTO ica.oauth_clients (client_id, client_secret_hash, name, logo_url, redirect_uris)
-VALUES (
-    'my-app',
-    '$2b$12$...',  -- The hash from step 2
-    'My Application',
-    'https://mycdn.com/my-app-logo.png',
-    '["https://myapp.com/callback"]'
-);
-```
-
-### 4. Configure your app
-```python
-# In your app's .env
-ICA_BASE_URL=https://iglobals-c-auth-web.vercel.app
-ICA_CLIENT_ID=my-app
-ICA_CLIENT_SECRET=a1b2c3d4e5f6...  # Plain-text secret, NOT the hash!
-ICA_REDIRECT_URI=https://myapp.com/callback
-```
-
-### 5. Test the flow
-- Click login in your app
-- Should redirect to ICA with your logo showing
-- Grant permission
-- Should redirect back to your app with auth code
-
----
-
-## Need Help?
-
-- Check [INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md) for SDK setup
-- See [OAUTH_FLOW_EXPLAINED.md](./OAUTH_FLOW_EXPLAINED.md) for flow details
-- Review [sdk-py/README.md](./sdk-py/README.md) for Python examples
+- [`INTEGRATION_GUIDE.md`](./INTEGRATION_GUIDE.md) — hand this to the app developer once you've registered them
+- [`docs/PAYSTACK_WEBHOOK_RELAY.md`](./docs/PAYSTACK_WEBHOOK_RELAY.md) — webhook relay internals
+- [`OAUTH_FLOW_EXPLAINED.md`](./OAUTH_FLOW_EXPLAINED.md) — OAuth 2.0 + PKCE flow in detail
+- [`sdk-py/README.md`](./sdk-py/README.md) / [`sdk-js/README.md`](./sdk-js/README.md) — SDK usage for the app being registered

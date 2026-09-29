@@ -41,7 +41,7 @@ webhook URL per app, it does not fan out to multiple URLs for one client.
 
 ## 2. Register your webhook URL in the ICA admin panel
 
-Go to **Settings > Clients > (your app) > Payment webhooks**, and enter the
+Go to **Clients > (your app) > Payment Webhooks** (the admin panel has no separate "Settings" section - client and webhook management both live under **Clients**), and enter the
 URL on your own server that should receive relayed events, e.g.:
 
 ```

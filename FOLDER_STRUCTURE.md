@@ -81,10 +81,13 @@ iglobals-cauth/
 ├── package.json             # Root workspace config
 ├── package-lock.json
 ├── docker-compose.yml       # Docker setup (optional)
-├── README.md                # Main documentation
-├── INTEGRATION_GUIDE.md     # Integration instructions
-├── MIGRATION_SUMMARY.md     # Migration details
-└── FOLDER_STRUCTURE.md      # This file
+├── README.md                        # Main documentation
+├── CLIENT_REGISTRATION_GUIDE.md     # ADMIN guide: register/manage OAuth clients, payment webhooks
+├── INTEGRATION_GUIDE.md             # DEVELOPER guide: integrate a new app (SDK, env vars, webhooks)
+├── OAUTH_FLOW_EXPLAINED.md          # OAuth 2.0 + PKCE flow deep-dive
+├── EMAIL_FLOW.md                    # Brevo-primary / SMTP-fallback email architecture
+├── docs/PAYSTACK_WEBHOOK_RELAY.md   # Webhook relay technical design
+└── FOLDER_STRUCTURE.md              # This file
 ```
 
 ## Key Directories

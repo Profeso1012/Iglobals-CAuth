@@ -1,3 +1,0 @@
-https://iglobals-c-auth-web.vercel.app/oauth/consent?client_id=ipod_itest_001&redirect_uri=http%3A%2F%2Flocalhost%3A5000%2Fauth%2Fcallback&state=4d35733c-2deb-4caa-9678-3f491994e601&code_challenge=YKGOTJPFjzLLcCucK1aRZ2Fkh4DDHJMfoU7qj5FLDwU&scope=openid+profile+email
-
-when i hit this after login at first i.e when i didnt have an account with iglobals and had to first create one and is done, it goes to 404 not found in this page. But when i try again (trying to login in the client app) it then goes since this time I already have an account ans is logged in so striaght up, not frontend branching. Same for cases where I have an account, but wasnt logged in, and so will have to interact with UI.

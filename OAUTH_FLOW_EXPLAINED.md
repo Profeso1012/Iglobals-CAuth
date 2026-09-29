@@ -436,23 +436,43 @@ WHERE client_id = 'ipod_itest_001';
 SELECT 
   client_id,
   redirect_uris,
-  redirect_uris @> '["http://localhost:5000/callback"]' AS has_callback
+  redirect_uris @> '["http://localhost:5000/auth/callback"]' AS has_callback
 FROM ica.oauth_clients
 WHERE client_id = 'ipod_itest_001';
 ```
 
 ---
 
+## Database Whitelist vs. Runtime redirect_uri
+
+Redirect URIs work at two levels, which trips people up:
+
+- **Database `redirect_uris`** (set at client registration - see `CLIENT_REGISTRATION_GUIDE.md`): a **whitelist** array of every URI this client is ever allowed to redirect to (one entry per environment - local, staging, production).
+- **SDK `redirect_uri`** (set when the client app initializes the SDK at runtime): the **one** URI actually used for a given OAuth flow. It must match a whitelist entry **exactly** - protocol, host, port, and path all count, with no query string or fragment.
+
+```python
+# Whitelisted at registration: ["http://localhost:3000/auth/callback", "https://myapp.com/auth/callback"]
+
+# This works - exact match to a whitelisted entry:
+client = IGlobalsAuth(client_id='my-app', redirect_uri='https://myapp.com/auth/callback')
+
+# This is rejected with redirect_uri_mismatch - not in the whitelist at all:
+evil_client = IGlobalsAuth(client_id='my-app', redirect_uri='https://evil.com/steal-tokens')
+```
+
+This two-level design is what stops an attacker from registering a legitimate-looking client and then sending users through an authorization request pointing `redirect_uri` somewhere they control - the authorize endpoint rejects any URI not already in that client's whitelist, before any code or token is issued. The most common cause of a `redirect_uri_mismatch` in practice is a trivial mismatch between the two levels: an extra path segment, `http` vs `https`, or a different port than what's actually registered.
+
+---
+
 ## Next Steps
 
-1. **Fix consent page styling** - ✅ Already fixed in this session
-2. **Verify OAuth client registration** - Check `redirect_uris` in database
-3. **Test complete flow** - Use Python SDK example above
-4. **Enable debug logging** - See exact API calls and responses
-5. **Check browser console** - Look for JavaScript errors
-6. **Review server logs** - Check ICA server logs for detailed error messages
+1. **Verify OAuth client registration** - Check `redirect_uris` in database, or via `GET /api/admin/clients/[clientId]`
+2. **Test complete flow** - Use the Python SDK example above
+3. **Enable debug logging** - See exact API calls and responses
+4. **Check browser console** - Look for JavaScript errors
+5. **Review server logs** - Check ICA server logs for detailed error messages
 
 For more details, see:
-- [INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md)
+- [CLIENT_REGISTRATION_GUIDE.md](./CLIENT_REGISTRATION_GUIDE.md)
 - [sdk-py/README.md](./sdk-py/README.md)
 - [sdk-js/README.md](./sdk-js/README.md)

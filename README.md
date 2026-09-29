@@ -14,15 +14,29 @@ This is a **single Next.js application** that serves:
 
 ## 🔑 Features
 
+### Authentication & Identity
 - ✅ OAuth 2.0 Authorization Code Flow with PKCE
 - ✅ OpenID Connect (OIDC) with ID Tokens
 - ✅ Refresh Token Rotation with replay detection
 - ✅ Email & Phone verification (OTP)
 - ✅ Password reset flows
 - ✅ Session management with secure cookies
-- ✅ Admin portal for managing users and OAuth clients
 - ✅ Multi-app SSO (Single Sign-On)
 - ✅ JWKS endpoint for token verification
+
+### Webhook Relay System 🆕
+- ✅ Centralized Paystack webhook relay for all client apps
+- ✅ Single Paystack account shared across ecosystem
+- ✅ Automatic routing based on transaction metadata
+- ✅ Per-client relay secrets with HMAC signature verification
+- ✅ Webhook configuration via admin portal
+- ✅ Secret rotation support
+
+### Management & Monitoring
+- ✅ Admin portal for managing users and OAuth clients
+- ✅ Webhook configuration and secret management
+- ✅ Audit logging for security events
+- ✅ Client usage analytics
 - ✅ Production-ready SDKs for Node.js and Python
 
 ## 📦 Deployment
@@ -45,9 +59,11 @@ Your entire auth system runs at a **single URL**: `https://auth.yourdomain.com`
 
 - Frontend: `https://auth.yourdomain.com/auth/login`
 - API: `https://auth.yourdomain.com/api/oauth/token`
-- Admin: `https://auth.yourdomain.com/dashboard`
+- Admin: `https://auth.yourdomain.com/admin` (see `CLIENT_REGISTRATION_GUIDE.md` for how to get admin access and what's there)
 
 ## 🛠️ Quick Start for Developers
+
+Building a new app that needs ICA login and/or payments? [`INTEGRATION_GUIDE.md`](./INTEGRATION_GUIDE.md) has the full walkthrough - getting registered, env vars for *your* app, and the payment webhook setup. The SDK reference below covers the API surface itself.
 
 ### Using the JavaScript SDK
 
@@ -145,31 +161,22 @@ SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
 SMTP_FROM=noreply@yourdomain.com
 
-# SMS (optional - for phone verification)
-TERMII_API_KEY=your-termii-key
-TERMII_SENDER_ID=YourApp
+# SMS (optional - for phone verification, via Kudisms)
+KUDISMS_TOKEN=your-kudisms-token
+KUDISMS_SENDER_ID=YourApp
+
+# Google OAuth (optional - "Sign in with Google" on the login page)
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
 
 # Admin
 ADMIN_JWT_SECRET=random-secret
-ADMIN_SECRET=admin-panel-password
+ADMIN_SECRET=admin-panel-passphrase   # shared passphrase; admin access itself is an email allowlist - see CLIENT_REGISTRATION_GUIDE.md
+
+# Payments (Paystack webhook relay - see CLIENT_REGISTRATION_GUIDE.md)
+PAYSTACK_SECRET_KEY=sk_live_or_test_key
+WEBHOOK_SECRET_ENCRYPTION_KEY=64-hex-chars   # generate with: openssl rand -hex 32
 ```
-
-## 🧹 Cleanup (After Migration)
-
-The project has been consolidated from separate API and web apps into a single Next.js application. To clean up:
-
-```bash
-# Remove old Express API folder (after testing)
-rm -rf api/
-
-# Optional: Remove root node_modules (web has its own)
-rm -rf node_modules/
-
-# Copy environment variables to web
-cp .env web/.env.local
-```
-
-See [CLEANUP_GUIDE.md](./CLEANUP_GUIDE.md) for detailed instructions.
 
 ## 📚 SDK Documentation
 
@@ -239,6 +246,71 @@ async def get_current_user(
 ):
     return user
 ```
+
+## 🪝 Webhook Relay System
+
+ICA provides a centralized webhook relay for Paystack payments, allowing multiple client apps to share a single Paystack account while receiving their own webhook events.
+
+### Quick Start
+
+1. **Configure ICA with Paystack**
+   ```bash
+   # In ICA .env.local
+   PAYSTACK_SECRET_KEY=sk_test_your_key
+   WEBHOOK_SECRET_ENCRYPTION_KEY=64-hex-chars
+   ```
+
+2. **Set Paystack Webhook URL**
+   - Dashboard: https://dashboard.paystack.com/settings/developer
+   - Webhook URL: `https://your-ica.vercel.app/api/webhooks/paystack`
+
+3. **Register Your App in ICA Admin Panel**
+   - Go to: `https://your-ica.vercel.app/admin/clients/[your-client]`
+   - Scroll to "Payment Webhooks" section
+   - Enter your webhook URL: `https://yourapp.com/api/webhooks/ica-relay/paystack`
+   - Save and copy the `relay_secret` (shown only once!)
+
+4. **Implement Webhook Endpoint**
+   ```python
+   import hmac, hashlib
+   
+   @app.route('/api/webhooks/ica-relay/paystack', methods=['POST'])
+   def ica_relay_paystack():
+       # Verify signature
+       relay_secret = os.environ['ICA_WEBHOOK_RELAY_SECRET'].encode()
+       signature = request.headers.get('x-ica-relay-signature', '')
+       computed = hmac.new(relay_secret, request.get_data(), hashlib.sha512).hexdigest()
+       
+       if not hmac.compare_digest(computed, signature):
+           return jsonify({"error": "invalid signature"}), 401
+       
+       # Handle event
+       payload = request.get_json()
+       event = payload['event']  # 'charge.success', etc.
+       data = payload['data']
+       
+       # Process payment...
+       return jsonify({"received": True}), 200
+   ```
+
+5. **Tag Transactions with client_id**
+   ```python
+   # When initializing Paystack payment
+   {
+       "email": user_email,
+       "amount": 50000,
+       "metadata": {
+           "client_id": "your_ica_client_id",  # ⚠️ REQUIRED for routing
+           "purpose": "subscription"            # Optional: for your own routing
+       }
+   }
+   ```
+
+### Documentation
+
+- **Admin how-to** (register a client, set up its webhook, rotate secrets): [CLIENT_REGISTRATION_GUIDE.md](./CLIENT_REGISTRATION_GUIDE.md)
+- **Design document** (signature scheme, retry behavior, DB schema): [docs/PAYSTACK_WEBHOOK_RELAY.md](./docs/PAYSTACK_WEBHOOK_RELAY.md)
+- **Test script**: `node scripts/test-webhook-relay.js`
 
 ## 🎯 How It Works
 
